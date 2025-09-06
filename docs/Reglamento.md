@@ -1,0 +1,508 @@
+## Reglamento · Análisis Funcional de la Plataforma
+
+### 1) Introducción
+- **Propósito**: Establecer una visión clara del sistema y alinear expectativas entre stakeholders para guiar diseño, desarrollo, pruebas y despliegue.
+- **Alcance**: Definir límites funcionales y no funcionales del MVP y de sus evoluciones, evitando scope creep.
+- **Valor agregado**: Reduce ambigüedades, sirve de base para la planificación, pruebas de aceptación y priorización.
+
+#### 1.1) Conceptualización del análisis funcional
+- Proceso estratégico para identificar, entender y documentar funciones/características que el sistema debe ofrecer a sus usuarios y organismos involucrados.
+- Objetivo: establecer una visión compartida de lo que se construirá, definiendo alcance, requisitos y criterios de éxito para guiar diseño, desarrollo y validación.
+
+#### 1.2) Alcance del proyecto
+- Funciones clave incluidas en la etapa actual:
+  - Comercialización y redención de bonos/cupones en cinco sectores: gastronomía/entretenimiento, estética, movilidad, tecnología y música.
+  - Marketplace de compra/venta con chat, reputación y escrow.
+  - Integración de pasarela de pago mediante Stripe para operaciones transaccionales.
+  - Gestión de múltiples tipos de usuario: consumidores (convertibles a influencers), dueños de negocio, admin y superadmin.
+- Fuera de alcance (esta fase): integraciones con redes externas, logística de envíos, módulos de IA avanzada.
+
+#### 1.3) Contexto organizacional y motivación
+- Responde a necesidades de pymes para acceder a promoción digital efectiva y a consumidores que buscan promociones reales y mecanismos de compra-venta confiables.
+- Diseño orientado a la escalabilidad por sectores y regiones, con alto volumen potencial, apalancado en contenido viral, marketing y economía colaborativa.
+
+#### 1.4) Entorno de operación
+- Plataforma web y móvil (multiplataforma, responsive).
+- Accesible a usuarios generales, comercios e influencers; integra módulos internos de pago, comunicación, reputación y validación.
+
+### 2) Descripción general del sistema
+- **Resumen funcional**: Plataforma digital de crecimiento comercial que conecta consumidores, negocios e influencers mediante:
+  - Comercialización y redención de bonos/cupones (con QR).
+  - Marketplace con chat, reputación y escrow.
+  - Pagos con Stripe.
+  - Gestión de roles (consumidor, influencer, negocio, admin, superadmin).
+- **Actores**:
+  - Consumidor, Influencer, Dueño de negocio, Admin/Superadmin.
+- **Entorno de operación**: Web y móvil (multiplataforma, responsive). Integración con módulos internos de pago, comunicación, reputación y validación.
+
+#### 2.1) Home universal y dashboards por rol
+- La aplicación presenta un **Home Screen universal** para todos los usuarios (punto de entrada común, noticias/alertas, accesos rápidos y navegación).
+- Para usuarios no consumidores (negocios, influencers y administradores), el **dashboard principal** por defecto es el de su rol, con acceso directo a sus funciones clave (p. ej., negocio: publicar/redimir bonos, métricas; influencer: panel de comisiones y herramientas; admin: gestión/moderación/reportes).
+- Los usuarios con múltiples roles podrán cambiar entre Home universal y su dashboard de rol desde la navegación.
+
+### 3) Requerimientos funcionales (RF)
+Área 1 · Bonos/Cupones
+- RF01: Compra de bonos en sectores habilitados (gastronomía/entretenimiento, estética, movilidad, tecnología y música).
+- RF02: Generación de código QR único por bono adquirido.
+- RF03: Validación/redención de bono vía QR en punto de consumo.
+- RF04: Historial de bonos comprados/redimidos.
+
+Área 2 · Marketplace
+- RF05: Publicación de productos (consumidores/negocios).
+- RF06: Chat comprador–vendedor.
+- RF07: Reputación (reseñas/calificaciones).
+- RF08: Búsqueda y filtros avanzados.
+- RF09: Escrow para fondos hasta confirmación de recepción.
+
+Área 3 · Pagos (Stripe)
+- RF10: Procesamiento de pagos con Stripe.
+- RF11: Asociación de pagos a órdenes.
+- RF12: Gestión de estados (pendiente, procesado, retenido, liberado).
+- RF13: Reportes de ingresos, comisiones y transacciones.
+
+Área 4 · Usuarios y Roles
+- RF14: Registro y autenticación.
+- RF15: Asignación de rol (consumidor, influencer, negocio, admin, superadmin).
+- RF16: Seguidores para elegibilidad de influencer.
+- RF17: Permisos por rol.
+- RF18: Perfil público/privado (ver/editar).
+
+### 4) Requerimientos no funcionales (RNF)
+- RNF01: Disponibilidad ≥ 99.9% mensual.
+- RNF02: RTO < 5 min en módulos críticos.
+- RNF03: Tiempo de respuesta promedio < 3 s.
+- RNF04: ≥ 10.000 usuarios concurrentes pico.
+- RNF05: Cifrado en tránsito y reposo (TLS/SSL, AES‑256).
+- RNF06: Autenticación por token; mitigación XSS/CSRF/SQLi.
+- RNF07: Control de acceso por rol.
+- RNF08: UI responsive (web/móvil), accesible (WCAG 2.1 AA).
+- RNF09: Navegación/flows intuitivos.
+- RNF10: CI/CD.
+- RNF11: Arquitectura modular/microservicios.
+- RNF12: Escalabilidad horizontal.
+- RNF13: Evolución sin romper contratos públicos.
+
+### 5) Modelado y UX
+- **Casos de uso (texto)**:
+  - CU01 Compra de bono: selección → pago → QR; comercio valida.
+  - CU02 Publicación de producto: alta con fotos/precio → visible en marketplace.
+  - CU03 Redención de bono: comercio escanea QR y valida vigencia.
+  - CU04 Conversión a influencer: sistema promueve rol al cumplir seguidores.
+- **User flows** (simplificado): Registro/Login → Explorar → Seleccionar → Pagar/Contactar → Validar/Entregar → Calificar/Compartir.
+- **Wireframes**: Inicio, Perfil, Marketplace, Detalle de bono, Checkout, Historial.
+- **Diseño UI/UX**: Mobile‑first, componentes reutilizables, jerarquía clara, CTAs visibles.
+
+### 6) Arquitectura (alto nivel)
+- **Servicios**: usuarios, pagos, productos, bonos, reputación.
+- **Comunicación**: API REST.
+- **Infra**: Contenedores (Docker) sobre GCP; Firebase para auth y notificaciones.
+
+### 7) Esquema de datos (resumen)
+- USUARIOS(id, nombre, email, rol, seguidores)
+- BONOS(id, titulo, sector, valor_real, valor_pagado, usuario_id, comercio_id, qr_code)
+- PRODUCTOS(id, titulo, descripcion, precio, usuario_id)
+- TRANSACCIONES(id, usuario_id, producto_id/bono_id, estado, metodo_pago, fecha)
+- RESEÑAS(id, emisor_id, receptor_id, tipo, calificacion, comentario)
+
+### 8) Reglas de negocio
+- Bonos redimibles una sola vez, con caducidad visible; no combinables salvo excepción.
+- Restricciones por rol (ejemplos):
+  - Consumidor: múltiples bonos, no transferibles.
+  - Influencer: comisiones y KPIs mínimos.
+  - Negocio: no redimir propios bonos; aceptar T&C.
+  - Admin: suspensión y edición de contenido.
+- Operativas:
+  - ≤ 5 bonos activos sin redimir por usuario.
+  - Publicación en marketplace requiere identidad validada.
+  - Transacciones por escrow (no pagos directos).
+  - Calificación obligatoria tras redención.
+
+### 9) Validaciones
+- Registro/Auth: campos obligatorios; contraseña ≥ 8 (mayús/minús/número/símbolo); unicidad de email.
+- Publicación: título 5–100; descripción ≥ 50; precio > 0; sector/categoría obligatorio; imagen JPG/PNG ≤ 5MB.
+- Compra/Redención: disponibilidad previa; método de pago válido; validación QR; no redención duplicada/fuera de vigencia.
+- Por rol: seguidores mínimos (influencer); identidad y T&C (negocio).
+- Validaciones en frontend y backend.
+
+### 10) Matriz de trazabilidad (fragmento)
+| Req | Caso de uso | Validación | Criterio aceptación |
+|---|---|---|---|
+| RF01 | CU01 | Compra + QR | Bono activo y QR generado al pagar |
+| RF03 | CU03 | Validación QR | QR válido solo 1 vez y dentro de vigencia |
+| RF05 | CU02 | Datos completos | Producto activo tras validación |
+| RF09 | CU01/CU02 | Escrow activo | Fondos se liberan al confirmar recepción |
+| RF14 | CU04 | Campos válidos | Registro exitoso |
+| RF16 | CU04 | Seguidores | Promoción automática de rol |
+
+### 11) Criterios de aceptación (ejemplos)
+- CU01 Compra de bono: precio/descuento claros; QR único; aparece en historial inmediatamente.
+- CU02 Publicación: campos obligatorios; visible y buscable tras publicación.
+- CU03 Redención: QR válido; no reutilizable; registro con timestamp.
+- CU04 Influencer: umbral de seguidores; cambio automático; habilita estadísticas y referidos.
+
+### 12) Interfaces y diseño
+- **UI**: Adaptativa (mobile/tablet/desktop), navegación por rol, CTAs claros.
+- **Patrones**: Componentes reutilizables, iconografía mínima, paleta accesible, tipografía legible.
+- **Componentes clave**: Header con buscador/menú; cards de bonos/productos; checkout con Stripe; perfil editable con estadísticas.
+
+### 13) Hoja de ruta (sugerida)
+- Fase 1 (Mes 1): MVP · Bonos + QR.
+- Fase 2 (Meses 2–3): Marketplace + escrow + Stripe.
+- Fase 3 (Mes 4): Reputación e influencers.
+- Fase 4 (Mes 5): Admin/Reportes + optimización + tests de carga.
+
+### 14) Priorización
+- Alta: Bonos/Cupones; Roles/Influencers.
+- Media: Marketplace con reputación/chat; Panel admin y reportes.
+- Baja (post‑MVP): Integraciones adicionales y mejoras UI/UX.
+
+### 15) Riesgos y dependencias
+- **Riesgos técnicos**: Falla de validación QR (mitigar con tests y fallback); picos de tráfico (escalado y CDN).
+- **Riesgos operativos**: Baja adopción de comercios (onboarding/incentivos); fraude/redención indebida (registros, reputación, límites por IP).
+- **Dependencias**: Stripe (pagos), Firebase (auth/notifications), GCP (infra escalable).
+
+### 16) Glosario (resumen)
+- Bono/Cupón: Descuento adquirido.
+- QR: Código único de validación.
+- Escrow: Retención de fondos hasta confirmación.
+- Influencer: Usuario con seguidores mínimos que accede a beneficios.
+- Stripe: Pasarela de pagos.
+- Redención: Validación de bono en comercio.
+- Reputación: Métrica de confiabilidad por calificaciones.
+- Mockup: Diseño visual preliminar.
+- MVP: Producto mínimo viable.
+- Microservicios: Componentes independientes vía API.
+
+---
+Este reglamento deberá versionarse en cada iteración significativa del producto y servirá de referencia contractual para definición de alcance, criterios de aceptación y validación.
+
+
+Flujograma:
+
+Flujograma Profesional: Sistema de Plataforma Comercial Multifuncional
+
+Objetivo: Visualizar la estructura, procesos clave y relaciones del sistema para identificar oportunidades de mejora en eficiencia, escalabilidad y experiencia de usuario.
+1. Estructura General del Sistema
+Diagram
+Code
+
+graph TD
+    A[Plataforma Digital] --> B[Módulo Bonos/Cupones]
+    A --> C[Módulo Marketplace]
+    A --> D[Módulo Pasarela de Pagos]
+    A --> E[Módulo Gestión de Usuarios]
+    B --> F[RF01: Compra bonos sectoriales]
+    C --> G[RF05: Publicación productos]
+    D --> H[RF10: Procesar pagos con Stripe]
+    E --> I[RF15: Asignación roles dinámica]
+
+2. Flujo Principal: Compra y Redención de Bono
+Diagram
+Code
+
+flowchart TD
+    U[Usuario/Consumidor] -->|1. Selecciona bono| B1[Validar disponibilidad]
+    B1 -->|Disponible| B2[Pago vía Stripe RF10]
+    B2 -->|Éxito| B3[Generar QR único RF02]
+    B3 -->|Registrar en historial RF04| B4[Notificar al comercio]
+    Comercio -->|5. Escanear QR RF03| B5[Validar vigencia y uso único]
+    B5 -->|Válido| B6[Aplicar descuento]
+    B6 -->|6. Calificación obligatoria| U
+
+3. Flujo Marketplace: Compra/Venta Segura
+Diagram
+Code
+
+flowchart LR
+    V[Vendedor] -->|Publica producto RF05| M[Marketplace]
+    C[Comprador] -->|Busca/ Filtra RF08| M
+    C -->|Inicia chat RF06| V
+    Acuerdo[Acuerdo comercial] -->|Pago iniciado| P[Escrow RF09]
+    P -->|Fondos retenidos| Envio[Envío producto]
+    C -->|Confirma recepción| Liberar[Liberar fondos]
+    Liberar --> Calificar[Calificar RF07]
+
+4. Conversión a Influencer
+Diagram
+Code
+
+flowchart TB
+    U[Usuario] -->|Gana seguidores| S[Sistema monitorea RF16]
+    S -->|Alcanza umbral| R[Cambio automático de rol RF15]
+    R --> H[Habilita: Panel de comisiones, Herramientas promocionales]
+    H -->|Comisiones por referidos| C[RF13: Reportes transacciones]
+
+5. Validaciones Críticas
+Diagram
+Code
+
+graph LR
+    Registro[Registro] --> V1[Email único y contraseña segura]
+    Publicación[Publicar bono/producto] --> V2[Título 5-100 chars, Precio >0]
+    Pago[Proceso pago] --> V3[Disponibilidad stock, Método válido]
+    Redención[Redimir bono] --> V4[QR vigente y no duplicado]
+    Influencer[Conversión influencer] --> V5[Seguidores mínimos en tiempo real]
+
+6. Mejoras Identificadas
+
+    Escalabilidad:
+
+        Implementar balanceo de carga (RNF04: 10k usuarios concurrentes).
+
+        Añadir caché Redis para consultas frecuentes (ej: bonos populares).
+
+    Seguridad:
+
+        Autenticación en dos pasos (no contemplada en RNF06).
+
+        Auditoría mensual de vulnerabilidades (XSS/SQLI).
+
+    Experiencia de Usuario:
+
+        Onboarding interactivo para nuevos negocios (mitigar riesgo de baja adopción).
+
+        Sistema de notificaciones push (Firebase) para actualizaciones de transacciones.
+
+    Procesos:
+
+        Integrar API logística en Fase 4 (actualmente fuera de alcance).
+
+        Automatizar verificación de identidad con servicios como Auth0.
+
+7. Hoja de Ruta Optimizada
+Fase	Módulos	Mejoras Añadidas	Duración
+MVP	Bonos + QR	Validación offline con PIN backup	1 mes
+Fase 2	Marketplace + Escrow	Chat con IA para resolución de disputas	2 meses
+Fase 3	Roles/Influencers + Stripe	Panel de analytics para influencers	1 mes
+Escalado	Admin + Seguridad	Logs de auditoría y CI/CD avanzado	2 meses
+
+Recomendaciones Finales:
+
+    Priorizar RNF13 (Evolución sin afectar funcionalidades) mediante arquitectura de microservicios bien definida.
+
+    Añadir test A/B en flujos de compra para optimizar conversión.
+
+    Implementar KPI en matriz de trazabilidad: % éxito redenciones, tiempo promedio de transacción.
+
+Este flujograma integra funcionalidades clave, requisitos no funcionales y oportunidades de mejora, proporcionando una visión estratégica para la evolución del sistema.
+
+
+
+### Flujograma central (completo)
+
+```mermaid
+flowchart TD
+    A[Plataforma Principal] --> B[Módulo 1: Autenticación]
+    A --> C[Módulo 2: Bonos]
+    A --> D[Módulo 3: Marketplace]
+    A --> E[Módulo 4: Pagos]
+    A --> F[Módulo 5: Influencers]
+    A --> G[Módulo 6: Administración]
+    
+    B --> B1[Registro]
+    B --> B2[Login]
+    B --> B3[Recuperación Contraseña]
+    B --> B4[Gestión de Roles]
+    B --> B5[Dashboard Rol]
+    
+    C --> C1[Explorador Bonos]
+    C --> C2[Detalle Bono]
+    C --> C3[Checkout]
+    C --> C4[Generación QR]
+    C --> C5[Historial]
+    C --> C6[Redención QR]
+    
+    D --> D1[Búsqueda Productos]
+    D --> D2[Publicación]
+    D --> D3[Detalle Producto]
+    D --> D4[Sistema Reputación]
+    D --> D5[Chat Integrado]
+    D --> D6[Gestión Inventario]
+    
+    E --> E1[Integración Stripe]
+    E --> E2[Proceso Pago]
+    E --> E3[Sistema Escrow]
+    E --> E4[Historial Transacciones]
+    E --> E5[Reportes Financieros]
+    
+    F --> F1[Dashboard Influencer]
+    F --> F2[Seguimiento Seguidores]
+    F --> F3[Herramientas Promocionales]
+    F --> F4[Gestión Comisiones]
+    F --> F5[Panel Referidos]
+    
+    G --> G1[Panel Administración]
+    G --> G2[Gestión Usuarios]
+    G --> G3[Moderación Contenido]
+    G --> G4[Reportes Riesgo]
+    G --> G5[Configuración Global]
+    
+    %% Interconexiones principales
+    B -.-> C
+    B -.-> D
+    B -.-> F
+    
+    C -.-> E
+    D -.-> E
+    F -.-> E
+    
+    C -.-> D
+    D -.-> C
+    
+    G -.-> B
+    G -.-> C
+    G -.-> D
+    G -.-> F
+    
+    %% Módulos de soporte
+    A --> H[Módulo 7: Analytics]
+    A --> I[Módulo 8: Seguridad]
+    A --> J[Módulo 9: Responsive]
+    A --> K[Módulo 10: Legales]
+    A --> L[Módulo 11: APIs]
+    A --> M[Módulo 12: Notificaciones]
+    A --> N[Módulo 13: Búsqueda]
+    
+    %% Conexiones de soporte
+    H -.-> C
+    H -.-> D
+    H -.-> E
+    H -.-> F
+    
+    I -.-> B
+    I -.-> E
+    I -.-> G
+    
+    J -.-> B
+    J -.-> C
+    J -.-> D
+    J -.-> E
+    J -.-> F
+    J -.-> G
+    
+    L -.-> B
+    L -.-> E
+    
+    M -.-> B
+    M -.-> C
+    M -.-> D
+    M -.-> E
+    M -.-> F
+    
+    N -.-> C
+    N -.-> D
+    
+    %% Elementos externos
+    E1 --> EX1[Stripe]
+    L --> EX2[Firebase]
+    M --> EX3[Servicios Notificación]
+    
+    %% Leyenda
+    subgraph Leyenda
+        DIR[Línea continua: Dependencia directa]
+        DASH[Línea punteada: Interacción]
+        EXT[Elementos externos]
+    end
+```
+
+### 17) Mapa de módulos y componentes (encuadre de software)
+
+Esta sección define los módulos del sistema y, dentro de cada uno, sus componentes internos y relaciones clave.
+
+Formato por módulo:
+- Responsabilidades
+- Componentes (UI/Estado/Servicios/Datos/Integraciones/Jobs/Permisos)
+- Eventos/Interfaces principales
+
+#### Módulo 1 · Autenticación
+- Responsabilidades: registro, login, recuperación de contraseña, emisión/renovación de tokens, gestión de roles y sesión.
+- Componentes:
+  - UI: pantallas `Register`, `Login`, `VerifyEmail`, recuperación.
+  - Estado: `authStore` (usuario, roles, token, expiración).
+  - Servicios: `AuthService` (email+password, OAuth futuro), `RoleService`.
+  - Datos: USUARIOS, sesiones/tokens (blacklist opcional), LOG_AUDIT.
+  - Integraciones: Firebase Auth (opcional), reCAPTCHA (futuro).
+  - Jobs: limpieza de sesiones expiradas.
+  - Permisos: middleware de autorización por rol.
+- Interfaces/Eventos:
+  - API: POST /auth/register, /auth/login, /auth/verify-email, /auth/recover.
+  - Eventos: `user.registered`, `user.role.changed`.
+
+#### Módulo 2 · Bonos/Cupones
+- Responsabilidades: listado, detalle, compra, generación QR, redención, historial.
+- Componentes:
+  - UI: `Explorer`, `CouponDetail`, `Checkout`, `History`, `RedeemQR`.
+  - Estado: `couponStore` (carrito, estado compra/redención).
+  - Servicios: `CouponService`, `QrService`, `RedemptionService`.
+  - Datos: BONOS, TRANSACCIONES (tipo bono), QR_ISSUED, REDEMPTIONS.
+  - Integraciones: Notificaciones push para recordatorios de expiración.
+  - Jobs: expiración automática y recordatorios.
+  - Permisos: negocio puede emitir/redimir; consumidor comprar/redimir propio.
+- Interfaces/Eventos:
+  - API: GET /coupons, POST /coupons/{id}/buy, POST /redeem.
+  - Eventos: `coupon.purchased`, `coupon.redeemed`.
+
+#### Módulo 3 · Marketplace
+- Responsabilidades: publicación, búsqueda/filtros, detalle, chat, reputación, inventario.
+- Componentes:
+  - UI: `Search`, `Publish`, `ProductDetail`, `Chat`, `Ratings`.
+  - Estado: `marketStore` (filtros, resultados, chat threads).
+  - Servicios: `ProductService`, `ChatService` (WebSocket/RTDB), `RatingService`.
+  - Datos: PRODUCTOS, RESEÑAS, INVENTARIO, MENSAJES.
+  - Integraciones: búsqueda/índice (Algolia/Elastic futuro).
+  - Jobs: cierre automático de publicaciones, archivado de chats.
+  - Permisos: publicar requiere identidad validada.
+- Interfaces/Eventos:
+  - API: GET/POST /products, POST /messages, POST /reviews.
+  - Eventos: `product.published`, `message.sent`, `rating.created`.
+
+#### Módulo 4 · Pagos
+- Responsabilidades: integración Stripe, órdenes, estados de pago, escrow, reportes.
+- Componentes:
+  - UI: `Checkout`, `PaymentsHistory`, `Reports` (negocio/admin).
+  - Estado: `paymentStore` (órdenes, estados, recibos).
+  - Servicios: `PaymentService` (Stripe), `EscrowService`, `ReportService`.
+  - Datos: TRANSACCIONES, PAYOUTS, COMMISSIONS.
+  - Integraciones: Stripe, contabilidad futura.
+  - Jobs: conciliación diaria, liquidaciones.
+  - Permisos: acceso a reportes por rol.
+- Interfaces/Eventos:
+  - API: POST /payments/intent, webhooks /payments/webhook.
+  - Eventos: `payment.succeeded`, `payment.released`.
+
+#### Módulo 5 · Influencers
+- Responsabilidades: dashboard, seguidores, herramientas promocionales, referidos, comisiones.
+- Componentes:
+  - UI: `InfluencerDashboard`, `Tools`, `Referrals`.
+  - Estado: `influencerStore` (seguidores, links, métricas).
+  - Servicios: `ReferralService`, `CommissionService`.
+  - Datos: FOLLOWERS, REFERRALS, COMMISSIONS.
+  - Jobs: cálculo de comisiones y cortes.
+  - Permisos: acceso mediante elegibilidad (RF16).
+- Interfaces/Eventos:
+  - API: GET /influencers/metrics, POST /referrals/link.
+  - Eventos: `referral.conversion`, `commission.accumulated`.
+
+#### Módulo 6 · Administración
+- Responsabilidades: panel, gestión usuarios, moderación, reportes de riesgo, configuración.
+- Componentes:
+  - UI: `AdminPanel`.
+  - Servicios: `AdminUserService`, `ModerationService`, `ConfigService`.
+  - Datos: FLAGS, AUDIT_LOG, SETTINGS.
+  - Permisos: admin/superadmin.
+- Interfaces/Eventos: APIs de gestión; eventos de auditoría.
+
+#### Módulos de soporte
+- Analytics: telemetría, dashboards; eventos transversales.
+- Seguridad: cifrado, políticas, WAF; auditoría.
+- Responsive: layout adaptativo; librerías UI.
+- Legales: términos, privacidad; versionado de documentos.
+- APIs: contratos externos (Stripe, Firebase); versionado; rate limits.
+- Notificaciones: push/email/SMS; plantillas y preferencias.
+- Búsqueda: índices/algoritmos; sugerencias.
+
+### 18) Relaciones entre módulos (resumen)
+- Autenticación habilita permisos para Bonos, Marketplace e Influencers.
+- Bonos/Marketplace emiten transacciones que fluyen a Pagos (Stripe/Escrow) y generan notificaciones.
+- Influencers consume métricas de Analytics y genera comisiones en Pagos.
+- Administración supervisa Autenticación, Bonos, Marketplace e Influencers; Seguridad y Legales aplican políticas globales.
