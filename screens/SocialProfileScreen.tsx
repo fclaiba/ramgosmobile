@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { follow, getUserById, listUserPosts, Post, unfollow } from '../services/social';
+import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
 import { getProducts } from '../services/products';
 import { getCoupons } from '../services/coupons';
 import { getEvents } from '../services/events';
@@ -203,21 +203,30 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               {!!item.post.imageUrl && <Image source={{ uri: item.post.imageUrl }} style={styles.tweetImage} />}
 
               <View style={styles.tweetActionsRow}>
-                <View style={styles.tweetAction}>
+                <Pressable
+                  style={styles.tweetAction}
+                  onPress={() => { addComment(item.post.id, '👍'); setVersion(v=>v+1); }}
+                >
                   <MaterialIcons name={'chat-bubble-outline'} size={16} color={'#6b7280'} />
                   <Text style={styles.tweetActionText}>{item.post.comments?.length || 0}</Text>
-                </View>
-                <View style={styles.tweetAction}>
-                  <MaterialIcons name={'cached'} size={16} color={'#6b7280'} />
-                  <Text style={styles.tweetActionText}>0</Text>
-                </View>
-                <View style={styles.tweetAction}>
-                  <MaterialIcons name={'favorite-border'} size={16} color={'#6b7280'} />
-                  <Text style={styles.tweetActionText}>{item.post.likes || 0}</Text>
-                </View>
-                <View style={styles.tweetAction}>
+                </Pressable>
+                <Pressable
+                  style={styles.tweetAction}
+                  onPress={() => { toggleRetweet(item.post.id); setVersion(v=>v+1); }}
+                >
+                  <MaterialIcons name={'cached'} size={16} color={item.post.retweetedByMe ? '#16a34a' : '#6b7280'} />
+                  <Text style={[styles.tweetActionText, { color: item.post.retweetedByMe ? '#16a34a' : '#6b7280' }]}>{item.post.retweets || 0}</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.tweetAction}
+                  onPress={() => { toggleLike(item.post.id); setVersion(v=>v+1); }}
+                >
+                  <MaterialIcons name={item.post.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={item.post.likedByMe ? '#ef4444' : '#6b7280'} />
+                  <Text style={[styles.tweetActionText, { color: item.post.likedByMe ? '#ef4444' : '#6b7280' }]}>{item.post.likes || 0}</Text>
+                </Pressable>
+                <Pressable style={styles.tweetAction} onPress={() => {}}>
                   <MaterialIcons name={'share'} size={16} color={'#6b7280'} />
-                </View>
+                </Pressable>
               </View>
             </View>
           )
@@ -236,7 +245,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                   </Pressable>
                 ))}
               </View>
-            </View>
+          </View>
           </Modal>
         )}
       />

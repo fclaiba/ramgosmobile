@@ -20,6 +20,8 @@ export type Post = {
   imageUrl?: string;
   likes: number;
   likedByMe?: boolean;
+  retweets?: number;
+  retweetedByMe?: boolean;
   comments: Comment[];
   createdAt: string;
 };
@@ -46,16 +48,16 @@ const EVENT_IMG = getEvents()[0]?.images[0];
 
 let POSTS: Post[] = [
   // Imagenes
-  { id: 'p1', author: CURRENT_USER, imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=1200&auto=format&fit=crop', likes: 12, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 1*3600_000).toISOString() },
-  { id: 'p2', author: CURRENT_USER, text: 'Probando nuevo set de productos para la tienda 🛒', likes: 5, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 2*3600_000).toISOString() },
-  { id: 'p3', author: CURRENT_USER, text: 'Nuevo producto destacado en nuestro Marketplace: ¡miralo ya! 📦', imageUrl: PROD_IMG, likes: 8, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 3*3600_000).toISOString() },
-  { id: 'p4', author: CURRENT_USER, text: 'Pregunta rápida: ¿Me recomiendan apps para gestión de inventario?', likes: 2, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 4*3600_000).toISOString() },
-  { id: 'p5', author: CURRENT_USER, text: 'Bono exclusivo disponible por tiempo limitado 🎟️', imageUrl: COUPON_IMG, likes: 15, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 5*3600_000).toISOString() },
-  { id: 'p6', author: CURRENT_USER, text: 'Hoy lanzamos un bono exclusivo. Detalles pronto 🔥', likes: 7, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 6*3600_000).toISOString() },
-  { id: 'p7', author: CURRENT_USER, text: 'Nuevo evento confirmado para la semana que viene 🎤', imageUrl: EVENT_IMG, likes: 9, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 8*3600_000).toISOString() },
-  { id: 'p8', author: CURRENT_USER, text: 'Tip del día: medí tus conversiones con UTMs. #growth', likes: 3, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 10*3600_000).toISOString() },
-  { id: 'p9', author: CURRENT_USER, imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1200&auto=format&fit=crop', likes: 6, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 12*3600_000).toISOString() },
-  { id: 'p10', author: CURRENT_USER, text: 'Gracias por el feedback de ayer 🙌 Seguimos mejorando.', likes: 4, likedByMe: false, comments: [], createdAt: new Date(Date.now() - 15*3600_000).toISOString() },
+  { id: 'p1', author: CURRENT_USER, imageUrl: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=1200&auto=format&fit=crop', likes: 12, likedByMe: false, retweets: 1, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 1*3600_000).toISOString() },
+  { id: 'p2', author: CURRENT_USER, text: 'Probando nuevo set de productos para la tienda 🛒', likes: 5, likedByMe: false, retweets: 0, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 2*3600_000).toISOString() },
+  { id: 'p3', author: CURRENT_USER, text: 'Nuevo producto destacado en nuestro Marketplace: ¡miralo ya! 📦', imageUrl: PROD_IMG, likes: 8, likedByMe: false, retweets: 2, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 3*3600_000).toISOString() },
+  { id: 'p4', author: CURRENT_USER, text: 'Pregunta rápida: ¿Me recomiendan apps para gestión de inventario?', likes: 2, likedByMe: false, retweets: 0, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 4*3600_000).toISOString() },
+  { id: 'p5', author: CURRENT_USER, text: 'Bono exclusivo disponible por tiempo limitado 🎟️', imageUrl: COUPON_IMG, likes: 15, likedByMe: false, retweets: 3, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 5*3600_000).toISOString() },
+  { id: 'p6', author: CURRENT_USER, text: 'Hoy lanzamos un bono exclusivo. Detalles pronto 🔥', likes: 7, likedByMe: false, retweets: 1, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 6*3600_000).toISOString() },
+  { id: 'p7', author: CURRENT_USER, text: 'Nuevo evento confirmado para la semana que viene 🎤', imageUrl: EVENT_IMG, likes: 9, likedByMe: false, retweets: 0, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 8*3600_000).toISOString() },
+  { id: 'p8', author: CURRENT_USER, text: 'Tip del día: medí tus conversiones con UTMs. #growth', likes: 3, likedByMe: false, retweets: 0, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 10*3600_000).toISOString() },
+  { id: 'p9', author: CURRENT_USER, imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1200&auto=format&fit=crop', likes: 6, likedByMe: false, retweets: 0, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 12*3600_000).toISOString() },
+  { id: 'p10', author: CURRENT_USER, text: 'Gracias por el feedback de ayer 🙌 Seguimos mejorando.', likes: 4, likedByMe: false, retweets: 0, retweetedByMe: false, comments: [], createdAt: new Date(Date.now() - 15*3600_000).toISOString() },
 ];
 
 export function getCurrentUser(): UserProfile { return CURRENT_USER; }
@@ -110,6 +112,14 @@ export function toggleLike(postId: string): Post | undefined {
   return p;
 }
 
+export function toggleRetweet(postId: string): Post | undefined {
+  const p = POSTS.find((x) => x.id === postId);
+  if (!p) return undefined;
+  p.retweetedByMe = !p.retweetedByMe;
+  p.retweets = Math.max(0, (p.retweets || 0) + (p.retweetedByMe ? 1 : -1));
+  return p;
+}
+
 export function addComment(postId: string, text: string): Comment | undefined {
   const p = POSTS.find((x) => x.id === postId);
   if (!p) return undefined;
@@ -117,7 +127,7 @@ export function addComment(postId: string, text: string): Comment | undefined {
     id: 'c_' + Math.random().toString(36).slice(2, 9),
     postId,
     author: CURRENT_USER,
-    text: text.trim(),
+    text: text.trim().slice(0, 280),
     createdAt: new Date().toISOString(),
   };
   p.comments.push(c);
