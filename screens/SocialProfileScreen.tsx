@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput, useWindowDimensions } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
 import { getPostById, listCommentsTree, toggleLikeComment } from '../services/social';
@@ -26,6 +26,11 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [replyText, setReplyText] = useState('');
   const replyInputRef = useRef<TextInput | null>(null);
   const translateY = useRef(new Animated.Value(0)).current;
+  const { width } = useWindowDimensions();
+  const GRID_GAP = 2;
+  const CONTENT_PADDING = 16;
+  const tileSize = Math.floor((width - CONTENT_PADDING * 2 - GRID_GAP * 2) / 3);
+  const [gridCount, setGridCount] = useState(21);
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 6,
@@ -173,12 +178,28 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             </View>
           ) : item.kind==='iggrid' ? (
             <View>
-              <View style={{ flexDirection:'row', flexWrap:'wrap', gap: 4 }}>
-                {images.map((src, i)=> (
-                  <Pressable key={i} onPress={()=>openViewer(i)}>
-                    <Image source={{ uri: src }} style={styles.igImage} />
-                  </Pressable>
-                ))}
+              {(() => {
+                const fillers = Array.from({ length: Math.max(0, gridCount - images.length) }, (_, i) => `https://images.unsplash.com/photo-15${(i%10)+10}556${(i%9)+10}0${(i%7)+10}-abcdef012345?q=80&w=1200&auto=format&fit=crop&sig=${i}`);
+                const grid = [...images, ...fillers].slice(0, gridCount);
+                return (
+                  <View style={{ flexDirection:'row', flexWrap:'wrap', gap: GRID_GAP }}>
+                    {grid.map((src, i) => (
+                      <Pressable key={i} onPress={()=>openViewer(i)}>
+                        <View style={{ width: tileSize, height: tileSize, backgroundColor:'#e5e7eb', borderRadius: 4, overflow:'hidden' }}>
+                          <Image source={{ uri: src }} style={{ width: '100%', height: '100%' }} />
+                          <View style={styles.igOverlay}>
+                            <MaterialIcons name={'collections'} size={14} color={'#ffffff'} />
+                          </View>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                );
+              })()}
+              <View style={{ marginTop: 8, alignItems:'center' }}>
+                <Pressable onPress={()=>setGridCount((c)=>c+21)} style={{ paddingVertical:8, paddingHorizontal:16, borderRadius:999, borderWidth:1, borderColor:'#d1d5db' }}>
+                  <Text style={{ color:'#111827', fontWeight:'800' }}>Cargar más</Text>
+                </Pressable>
               </View>
             </View>
           ) : item.kind==='featured' ? (
@@ -395,6 +416,7 @@ const styles = StyleSheet.create({
   tabText: { color:'#6b7280', fontWeight:'700' },
   tabTextActive: { color:'#111827' },
   igImage: { width: '32%', aspectRatio: 1, borderRadius: 8, backgroundColor:'#e5e7eb' },
+  igOverlay: { position:'absolute', right:6, top:6, padding:4, borderRadius:6, backgroundColor:'rgba(0,0,0,0.35)' },
   viewerBackdrop: { flex:1, backgroundColor:'rgba(0,0,0,0.85)', alignItems:'center', justifyContent:'center', padding:16 },
   viewerCard: { width:'100%', borderRadius:16, overflow:'hidden', backgroundColor:'#000' },
   viewerImage: { width:'100%', aspectRatio: 1 },
