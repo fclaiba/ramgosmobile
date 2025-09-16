@@ -18,10 +18,13 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const reviews = useMemo(()=> listReviewsByUser(userId), [userId, version]);
   const coupons = useMemo(()=> getCoupons().slice(0,4), []);
   const events = useMemo(()=> getEvents().slice(0,2), []);
-  const images = useMemo(()=> posts.filter(p=>!!p.imageUrl).map(p=>p.imageUrl as string), [posts]);
+  const postsWithImage = useMemo(()=> posts.filter(p=>!!p.imageUrl), [posts]);
+  const images = useMemo(()=> postsWithImage.map(p=>p.imageUrl as string), [postsWithImage]);
   const [view, setView] = useState<'ig'|'tw'|'biz'>('ig');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [igFeedOpen, setIgFeedOpen] = useState(false);
+  const [igFeedIndex, setIgFeedIndex] = useState(0);
   const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
   const replyInputRef = useRef<TextInput | null>(null);
@@ -184,7 +187,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                 return (
                   <View style={{ flexDirection:'row', flexWrap:'wrap', gap: GRID_GAP }}>
                     {grid.map((src, i) => (
-                      <Pressable key={i} onPress={()=>openViewer(i)}>
+                      <Pressable key={i} onPress={()=>{ setIgFeedIndex(i); setIgFeedOpen(true); }}>
                         <View style={{ width: tileSize, height: tileSize, backgroundColor:'#e5e7eb', borderRadius: 4, overflow:'hidden' }}>
                           <Image source={{ uri: src }} style={{ width: '100%', height: '100%' }} />
                           <View style={styles.igOverlay}>
@@ -366,6 +369,32 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               style={{ paddingHorizontal:12, paddingVertical:8, borderRadius:999, backgroundColor:'#1173d4' }}
             >
               <Text style={{ color:'#ffffff', fontWeight:'800' }}>Responder</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Instagram-like feed modal */}
+      <Modal visible={igFeedOpen} animationType="slide" onRequestClose={()=>setIgFeedOpen(false)}>
+        <SafeAreaView style={{ flex:1, backgroundColor:'#000000' }}>
+          <FlatList
+            data={postsWithImage}
+            keyExtractor={(p)=>p.id}
+            initialScrollIndex={Math.min(igFeedIndex, postsWithImage.length-1)}
+            getItemLayout={(_d, index) => ({ length: width, offset: width*index, index })}
+            renderItem={({ item }) => (
+              <View style={{ width:'100%', backgroundColor:'#000000' }}>
+                <Image source={{ uri: item.imageUrl! }} style={{ width:'100%', aspectRatio:1, backgroundColor:'#111' }} />
+                <View style={{ padding:12 }}>
+                  <Text style={{ color:'#ffffff', fontWeight:'800' }}>{user.name} <Text style={{ color:'#9ca3af' }}>@{user.handle}</Text></Text>
+                  {!!item.text && <Text style={{ color:'#e5e7eb', marginTop:6 }}>{item.text}</Text>}
+                </View>
+              </View>
+            )}
+          />
+          <View style={{ position:'absolute', top:8, left:8 }}>
+            <Pressable onPress={()=>setIgFeedOpen(false)} style={{ padding:8, borderRadius:999, backgroundColor:'rgba(255,255,255,0.2)' }}>
+              <MaterialIcons name={'close'} size={22} color={'#ffffff'} />
             </Pressable>
           </View>
         </SafeAreaView>
