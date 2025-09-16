@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput, useWindowDimensions, ScrollView } from 'react-native';
+import SettingsScreen from './SettingsScreen';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
 import { getPostById, listCommentsTree, toggleLikeComment } from '../services/social';
@@ -32,6 +33,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [igFeedOpen, setIgFeedOpen] = useState(false);
   const [igFeedIndex, setIgFeedIndex] = useState(0);
   const highlightState = useHighlightViewerState();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -209,6 +211,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               </Pressable>
               <View style={styles.topRight}>
                 <Pressable style={styles.iconBtn} hitSlop={8}><MaterialIcons name={'palette'} size={20} color={'#111827'} /></Pressable>
+                <Pressable style={styles.iconBtn} hitSlop={8} onPress={()=>setSettingsOpen(true)}><MaterialIcons name={'settings'} size={20} color={'#111827'} /></Pressable>
                 <Pressable style={styles.iconBtn} hitSlop={8}><MaterialIcons name={'more-vert'} size={20} color={'#111827'} /></Pressable>
               </View>
             </View>
@@ -474,6 +477,11 @@ export default function SocialProfileScreen({ route, navigation }: any) {
 
       {/* Highlight viewer modal */}
       <HighlightViewer state={highlightState} />
+
+      {/* Settings modal triggered from top-right icon */}
+      <Modal visible={settingsOpen} animationType="slide" onRequestClose={()=>setSettingsOpen(false)}>
+        <SettingsScreen />
+      </Modal>
     </SafeAreaView>
   );
 }

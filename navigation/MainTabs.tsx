@@ -9,7 +9,6 @@ import SocialProfileScreen from '../screens/SocialProfileScreen';
 import MarketplaceScreen from '../screens/MarketplaceScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import EventsScreen from '../screens/EventsScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -31,7 +30,6 @@ export default function MainTabs() {
       <Tab.Screen name="Explorar" component={ExploreCouponsScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"search" as any} size={size ?? 22} color={color} />), title: 'Explorar' }} />
       <Tab.Screen name="Eventos" component={EventsScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"event" as any} size={size ?? 22} color={color} />), title: 'Eventos' }} />
       <Tab.Screen name="Social" component={SocialProfileScreen} initialParams={{ userId }} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"groups" as any} size={size ?? 22} color={color} />), title: 'Social Network' }} />
-      <Tab.Screen name="Ajustes" component={SettingsScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"settings" as any} size={size ?? 22} color={color} />), title: 'Ajustes' }} />
     </Tab.Navigator>
   );
 }
