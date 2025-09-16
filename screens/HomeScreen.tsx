@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import SideDrawer from '../components/SideDrawer';
+import { useNavigation } from '@react-navigation/native';
 
 const PRIMARY = '#0ea5e9';
 const TEXT_DARK = '#111827';
@@ -20,6 +21,7 @@ const BORDER = '#e5e7eb';
 export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState(false);
+  const navigation = useNavigation<any>();
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -39,7 +41,7 @@ export default function HomeScreen() {
           </Pressable>
           <Text style={styles.title}>Hola, Sofia</Text>
           <View style={styles.notificationsWrapper}>
-            <Pressable style={[styles.iconButton, styles.iconButtonMuted]}>
+            <Pressable style={[styles.iconButton, styles.iconButtonMuted]} onPress={()=>navigation.navigate('SocialNotifications' as any)}>
               <MaterialIcons name="notifications" size={22} color={TEXT_DARK} />
             </Pressable>
             <View style={styles.badge} />
