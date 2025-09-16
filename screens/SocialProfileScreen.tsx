@@ -7,6 +7,7 @@ import { getProducts } from '../services/products';
 import { getCoupons } from '../services/coupons';
 import { getEvents } from '../services/events';
 import { getAverageRating, listReviewsByUser } from '../services/reviews';
+import { HighlightCarousel, HighlightViewer, MOCK_HIGHLIGHTS, useHighlightViewerState } from '../components/ig/highlights';
 
 export default function SocialProfileScreen({ route, navigation }: any) {
   const userId: string = route?.params?.userId;
@@ -30,6 +31,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [igFeedOpen, setIgFeedOpen] = useState(false);
   const [igFeedIndex, setIgFeedIndex] = useState(0);
+  const highlightState = useHighlightViewerState();
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -254,21 +256,10 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             </View>
           ) : item.kind==='highlights' ? (
             <View style={{ gap: 8 }}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                decelerationRate={'fast'}
-                snapToAlignment={'start'}
-                snapToInterval={92}
-                contentContainerStyle={{ paddingVertical: 6, gap: 12, paddingHorizontal: 2 }}
-              >
-                {highlights.map(h => (
-                  <View key={h.id} style={{ alignItems:'center', width: 92 }}>
-                    <Image source={{ uri: h.cover }} style={styles.hlCover} />
-                    <Text style={styles.hlTitle} numberOfLines={1}>{h.title}</Text>
-                  </View>
-                ))}
-              </ScrollView>
+              <HighlightCarousel
+                highlights={MOCK_HIGHLIGHTS}
+                onOpen={(h)=>highlightState.open(h,0)}
+              />
             </View>
           ) : item.kind==='iggrid' ? (
             <View>
@@ -480,6 +471,9 @@ export default function SocialProfileScreen({ route, navigation }: any) {
           />
         </SafeAreaView>
       </Modal>
+
+      {/* Highlight viewer modal */}
+      <HighlightViewer state={highlightState} />
     </SafeAreaView>
   );
 }
