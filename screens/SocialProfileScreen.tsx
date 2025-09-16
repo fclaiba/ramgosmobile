@@ -254,10 +254,16 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             </View>
           ) : item.kind==='highlights' ? (
             <View style={{ gap: 8 }}>
-              <Text style={styles.sectionTitle}>Historias destacadas</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 6, gap: 12 }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate={'fast'}
+                snapToAlignment={'start'}
+                snapToInterval={92}
+                contentContainerStyle={{ paddingVertical: 6, gap: 12, paddingHorizontal: 2 }}
+              >
                 {highlights.map(h => (
-                  <View key={h.id} style={{ alignItems:'center' }}>
+                  <View key={h.id} style={{ alignItems:'center', width: 92 }}>
                     <Image source={{ uri: h.cover }} style={styles.hlCover} />
                     <Text style={styles.hlTitle} numberOfLines={1}>{h.title}</Text>
                   </View>
