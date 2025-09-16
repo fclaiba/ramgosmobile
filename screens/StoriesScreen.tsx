@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 8, paddingHorizontal: 16 },
   headerTitle: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
   storyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  image: { width: width, height: width * 16/9, resizeMode: 'cover' },
+  image: { width: width, height: width * 16/9 },
   textStory: { width: width, height: width * 16/9, alignItems: 'center', justifyContent: 'center' },
   text: { color: '#ffffff', fontSize: 20, fontWeight: '800', paddingHorizontal: 16, textAlign: 'center' },
   controls: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row' },

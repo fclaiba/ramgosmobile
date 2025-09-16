@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   stepCircle: { height: 32, width: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   stepLine: { height: 2, width: 64, backgroundColor: '#e2e8f0' },
 
-  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, boxShadow: '0px 8px 16px rgba(0,0,0,0.04)', elevation: 1 },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#111418' },
   sep: { height: 1, backgroundColor: '#e5e7eb', marginTop: 10, marginBottom: 6 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

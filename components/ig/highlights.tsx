@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, Image, Text, Pressable, Modal, Dimensions, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -20,22 +20,20 @@ export type Highlight = {
   updatedAt: string;
 };
 
-// Mock data
 export const MOCK_HIGHLIGHTS: Highlight[] = Array.from({ length: 6 }, (_, h) => ({
   id: `highlight_${h+1}`,
   title: ['Viajes','Locales','Clientes','Backstage','Equipo','Eventos'][h%6],
-  coverImage: `https://images.unsplash.com/photo-15${(h%9)+10}9${(h%7)+10}0${(h%5)+10}?q=80&w=600&auto=format&fit=crop`,
+  coverImage: `https://picsum.photos/seed/hl_${h}/300/300`,
   updatedAt: new Date(Date.now() - h*3600_000).toISOString(),
   stories: Array.from({ length: 4 + (h%3) }, (_, i) => ({
     id: `story_${h+1}_${i+1}`,
     mediaType: 'image',
-    mediaUrl: `https://images.unsplash.com/photo-15${(i%9)+10}5${(i%7)+10}0${(i%5)+10}?q=80&w=1200&auto=format&fit=crop`,
+    mediaUrl: `https://picsum.photos/seed/hl_${h}_${i}/1200/2000`,
     duration: 5000,
     timestamp: new Date(Date.now() - (i+h)*3600_000).toISOString(),
   })),
 }));
 
-// Hook for viewer state
 export function useHighlightViewerState() {
   const [isOpen, setOpen] = useState(false);
   const [currentHighlight, setHighlight] = useState<Highlight | null>(null);
@@ -49,7 +47,8 @@ export function useHighlightViewerState() {
   return { isOpen, currentHighlight, index, open, close, advance, back, setIndex };
 }
 
-export function StoryProgress({ count, activeIndex, progress }: { count: number; activeIndex: number; progress: number }) {
+export function StoryProgress(props: { count: number; activeIndex: number; progress: number }) {
+  const { count, activeIndex, progress } = props;
   return (
     <View style={{ position:'absolute', top: 8, left: 8, right: 8, flexDirection:'row', gap: 6 }}>
       {Array.from({ length: count }).map((_, i) => (
@@ -103,7 +102,6 @@ export function HighlightViewer({ state }: { state: ReturnType<typeof useHighlig
     if (!isOpen || !currentHighlight) return;
     const story = currentHighlight.stories[index];
     resetProgress(story.duration);
-    // Prefetch next
     const next = currentHighlight.stories[index+1]?.mediaUrl;
     if (next) Image.prefetch(next);
     return () => { progress.stopAnimation(); };
@@ -122,10 +120,9 @@ export function HighlightViewer({ state }: { state: ReturnType<typeof useHighlig
           </Pressable>
         </View>
         <View style={{ flex:1, alignItems:'center', justifyContent:'center' }}>
-          <Image source={{ uri: story.mediaUrl }} style={{ width: width, height: height, resizeMode:'contain' }} />
+          <Image source={{ uri: story.mediaUrl }} resizeMode={'contain'} style={{ width: width, height: height }} />
         </View>
-        {/* Tap zones */}
-        <View style={{ position:'absolute', inset:0, flexDirection:'row' }}>
+        <View style={{ position:'absolute', left:0, right:0, top:0, bottom:0, flexDirection:'row' }}>
           <Pressable style={{ flex:1 }} onPress={()=>setIndex((i)=>Math.max(0, i-1))} />
           <Pressable style={{ flex:1 }} onPress={()=>setIndex((i)=>{ const total=currentHighlight.stories.length; if (i+1<total) return i+1; close(); return i; })} />
         </View>
@@ -133,3 +130,4 @@ export function HighlightViewer({ state }: { state: ReturnType<typeof useHighlig
     </Modal>
   );
 }
+

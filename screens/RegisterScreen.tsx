@@ -200,9 +200,7 @@ const styles = StyleSheet.create({
   },
   roleCardSelected: {
     borderColor: BLUE,
-    shadowColor: BLUE,
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    boxShadow: '0px 8px 20px rgba(14, 165, 233, 0.2)',
   },
   roleText: {
     fontSize: 16,

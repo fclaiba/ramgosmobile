@@ -79,7 +79,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
     const showAll = expandedReplies.has(node.id);
     const visibleReplies = collapseAtThisLevel ? (showAll ? replies : []) : replies;
 
-    return (
+  return (
       <View key={node.id} style={{ paddingLeft: indentPx, position:'relative' }}>
         {indentDepth > 0 && (
           <View style={{ position:'absolute', left: indentPx - Math.floor(INDENT_UNIT/2), top: 0, bottom: 0, width: 1, backgroundColor:'#e5e7eb' }} />
@@ -114,7 +114,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                 {collapseAtThisLevel && showAll && replies.length > 0 && (
                   <Pressable onPress={()=>{ setExpandedReplies((prev)=>{ const n = new Set(prev); n.delete(node.id); return n; }); }}>
                     <Text style={{ color:'#6b7280', fontWeight:'700' }}>Mostrar menos</Text>
-                  </Pressable>
+        </Pressable>
                 )}
               </View>
             )}
@@ -177,7 +177,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                 </Pressable>
                 <Pressable>
                   <MaterialIcons name={'ios-share'} size={22} color={'#e5e7eb'} />
-                </Pressable>
+        </Pressable>
               </View>
             </View>
           )}
@@ -185,7 +185,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
         <View style={{ position:'absolute', top:8, left:8 }}>
           <Pressable onPress={onClose} style={{ padding:8, borderRadius:999, backgroundColor:'rgba(255,255,255,0.2)' }}>
             <MaterialIcons name={'close'} size={22} color={'#ffffff'} />
-          </Pressable>
+        </Pressable>
         </View>
       </View>
     );
@@ -264,7 +264,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
           ) : item.kind==='iggrid' ? (
             <View>
               {(() => {
-                const fillers = Array.from({ length: Math.max(0, gridCount - images.length) }, (_, i) => `https://images.unsplash.com/photo-15${(i%10)+10}556${(i%9)+10}0${(i%7)+10}-abcdef012345?q=80&w=1200&auto=format&fit=crop&sig=${i}`);
+                const fillers = Array.from({ length: Math.max(0, gridCount - images.length) }, (_, i) => `https://picsum.photos/seed/ig_${i}/1200/1200`);
                 const grid = [...images, ...fillers].slice(0, gridCount);
                 return (
                   <View style={{ flexDirection:'row', flexWrap:'wrap', gap: GRID_GAP }}>

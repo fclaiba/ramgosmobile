@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   tabText: { color: '#64748b', fontWeight: '800' },
   tabTextActive: { color: '#1173d4' },
 
-  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 12, boxShadow: '0px 8px 16px rgba(0,0,0,0.04)', elevation: 1 },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
   cardTitle: { color: '#0f172a', fontWeight: '800' },
   cardSubtitle: { color: '#6b7280', fontSize: 12 },

@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   card: { flex: 1, backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden' },
   cardList: { width: '100%' },
   imageWrap: { width: '100%', aspectRatio: 1 },
-  image: { flex: 1, resizeMode: 'cover' },
+  image: { flex: 1 },
   badgeRow: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', gap: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
   badgeText: { color: '#ffffff', fontWeight: '800', fontSize: 10 },
