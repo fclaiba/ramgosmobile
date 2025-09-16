@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput, useWindowDimensions } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
@@ -25,6 +25,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [igFeedOpen, setIgFeedOpen] = useState(false);
   const [igFeedIndex, setIgFeedIndex] = useState(0);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
   const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
   const replyInputRef = useRef<TextInput | null>(null);
@@ -111,6 +112,73 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               </View>
             )}
           </View>
+        </View>
+      </View>
+    );
+  }
+
+  function IgFeed({ width, posts, startIndex, onClose, onLike, onComment, onSave, isSaved }: { width: number; posts: any[]; startIndex: number; onClose: () => void; onLike: (id: string)=>void; onComment: (id: string)=>void; onSave: (id: string)=>void; isSaved: (id: string)=>boolean }) {
+    const listRef = useRef<FlatList<any> | null>(null);
+    const [index, setIndex] = useState(startIndex);
+    useEffect(() => {
+      listRef.current?.scrollToIndex?.({ index: startIndex, animated: false });
+    }, [startIndex]);
+
+    // Preload next images
+    useEffect(() => {
+      const next = posts[index+1]?.imageUrl;
+      const next2 = posts[index+2]?.imageUrl;
+      [next, next2].filter(Boolean).forEach((url) => { Image.prefetch(url as string); });
+    }, [index, posts]);
+
+    const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+      const first = viewableItems?.[0];
+      if (first && Number.isInteger(first.index)) setIndex(first.index);
+    }).current;
+
+    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
+
+    return (
+      <View style={{ flex:1, backgroundColor:'#000' }}>
+        <FlatList
+          ref={listRef}
+          data={posts}
+          keyExtractor={(p) => p.id}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          getItemLayout={(_d, i) => ({ length: width, offset: width * i, index: i })}
+          renderItem={({ item }) => (
+            <View style={{ width: '100%', minHeight: width, backgroundColor: '#000' }}>
+              <Image source={{ uri: item.imageUrl }} style={{ width: '100%', aspectRatio: 1, backgroundColor: '#111' }} />
+              <View style={{ padding: 12 }}>
+                <Text style={{ color: '#fff', fontWeight: '800' }}>{item.author?.name || 'Usuario'} <Text style={{ color: '#9ca3af' }}>@{item.author?.handle || 'usuario'}</Text></Text>
+                {!!item.text && <Text style={{ color: '#e5e7eb', marginTop: 6 }}>{item.text}</Text>}
+              </View>
+              <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-around', paddingVertical:8 }}>
+                <Pressable onPress={()=>onLike(item.id)} style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                  <MaterialIcons name={item.likedByMe ? 'favorite' : 'favorite-border'} size={22} color={item.likedByMe ? '#ef4444' : '#e5e7eb'} />
+                  <Text style={{ color:'#e5e7eb' }}>{item.likes || 0}</Text>
+                </Pressable>
+                <Pressable onPress={()=>onComment(item.id)} style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                  <MaterialIcons name={'chat-bubble-outline'} size={22} color={'#e5e7eb'} />
+                  <Text style={{ color:'#e5e7eb' }}>{item.comments?.length || 0}</Text>
+                </Pressable>
+                <Pressable onPress={()=>onSave(item.id)}>
+                  <MaterialIcons name={isSaved(item.id) ? 'bookmark' : 'bookmark-border'} size={22} color={'#e5e7eb'} />
+                </Pressable>
+                <Pressable>
+                  <MaterialIcons name={'ios-share'} size={22} color={'#e5e7eb'} />
+                </Pressable>
+              </View>
+            </View>
+          )}
+        />
+        <View style={{ position:'absolute', top:8, left:8 }}>
+          <Pressable onPress={onClose} style={{ padding:8, borderRadius:999, backgroundColor:'rgba(255,255,255,0.2)' }}>
+            <MaterialIcons name={'close'} size={22} color={'#ffffff'} />
+          </Pressable>
         </View>
       </View>
     );
@@ -377,26 +445,16 @@ export default function SocialProfileScreen({ route, navigation }: any) {
       {/* Instagram-like feed modal */}
       <Modal visible={igFeedOpen} animationType="slide" onRequestClose={()=>setIgFeedOpen(false)}>
         <SafeAreaView style={{ flex:1, backgroundColor:'#000000' }}>
-          <FlatList
-            data={postsWithImage}
-            keyExtractor={(p)=>p.id}
-            initialScrollIndex={Math.min(igFeedIndex, postsWithImage.length-1)}
-            getItemLayout={(_d, index) => ({ length: width, offset: width*index, index })}
-            renderItem={({ item }) => (
-              <View style={{ width:'100%', backgroundColor:'#000000' }}>
-                <Image source={{ uri: item.imageUrl! }} style={{ width:'100%', aspectRatio:1, backgroundColor:'#111' }} />
-                <View style={{ padding:12 }}>
-                  <Text style={{ color:'#ffffff', fontWeight:'800' }}>{user.name} <Text style={{ color:'#9ca3af' }}>@{user.handle}</Text></Text>
-                  {!!item.text && <Text style={{ color:'#e5e7eb', marginTop:6 }}>{item.text}</Text>}
-                </View>
-              </View>
-            )}
+          <IgFeed
+            width={width}
+            posts={postsWithImage}
+            startIndex={Math.min(igFeedIndex, postsWithImage.length-1)}
+            onClose={()=>setIgFeedOpen(false)}
+            onLike={(postId)=>{ toggleLike(postId); setVersion(v=>v+1); }}
+            onComment={(postId)=>{ setThreadOpen({ postId }); }}
+            onSave={(postId)=>{ setSaved(prev=>{ const n = new Set(prev); n.has(postId) ? n.delete(postId) : n.add(postId); return n; }); setVersion(v=>v+1); }}
+            isSaved={(postId)=>saved.has(postId)}
           />
-          <View style={{ position:'absolute', top:8, left:8 }}>
-            <Pressable onPress={()=>setIgFeedOpen(false)} style={{ padding:8, borderRadius:999, backgroundColor:'rgba(255,255,255,0.2)' }}>
-              <MaterialIcons name={'close'} size={22} color={'#ffffff'} />
-            </Pressable>
-          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
