@@ -50,31 +50,56 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   if (!user) return null;
 
   const refresh = () => setVersion((v) => v + 1);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
   function renderCommentNode(node: any, depth: number) {
-  return (
-      <View key={node.id}>
+    const INDENT_UNIT = 16;
+    const MAX_INDENT = 3;
+    const indentDepth = Math.min(depth, MAX_INDENT);
+    const indentPx = indentDepth * INDENT_UNIT;
+
+    const replies: any[] = node.replies || [];
+    const MAX_COLLAPSED = 2;
+    const showAll = expandedReplies.has(node.id);
+    const visibleReplies = showAll ? replies : replies.slice(0, MAX_COLLAPSED);
+
+    return (
+      <View key={node.id} style={{ paddingLeft: indentPx, position:'relative' }}>
+        {indentDepth > 0 && (
+          <View style={{ position:'absolute', left: indentPx - Math.floor(INDENT_UNIT/2), top: 0, bottom: 0, width: 1, backgroundColor:'#e5e7eb' }} />
+        )}
         <View style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
-          <Image source={{ uri: node.author.avatarUrl || 'https://i.pravatar.cc/100?img=31' }} style={{ width:32, height:32, borderRadius:999, backgroundColor:'#e5e7eb', marginLeft: depth ? 14 : 0 }} />
+          <Image source={{ uri: node.author.avatarUrl || 'https://i.pravatar.cc/100?img=31' }} style={{ width:32, height:32, borderRadius:999, backgroundColor:'#e5e7eb' }} />
           <View style={{ flex:1 }}>
             <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
               <Text style={{ fontWeight:'800', color:'#111827' }}>{node.author.name}</Text>
               <Text style={{ color:'#6b7280' }}>{new Date(node.createdAt).toLocaleString()}</Text>
-      </View>
+            </View>
             <Text style={{ color:'#111827', marginTop:2 }}>{node.text}</Text>
             <View style={{ flexDirection:'row', gap:16, marginTop:6 }}>
               <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ toggleLikeComment(node.id); refresh(); }}>
                 <MaterialIcons name={node.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={node.likedByMe ? '#ef4444' : '#6b7280'} />
                 <Text style={{ color:node.likedByMe ? '#ef4444' : '#6b7280' }}>{node.likes || 0}</Text>
-        </Pressable>
+              </Pressable>
               <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ setThreadOpen({ postId: threadOpen!.postId, replyingToId: node.id }); setTimeout(()=>replyInputRef.current?.focus(), 0); }}>
                 <MaterialIcons name={'reply'} size={16} color={'#6b7280'} />
                 <Text style={{ color:'#6b7280' }}>Responder</Text>
-        </Pressable>
+              </Pressable>
             </View>
-            {node.replies?.length > 0 && (
-              <View style={{ marginLeft:14, marginTop:8, borderLeftWidth:1, borderColor:'#e5e7eb', paddingLeft:10, gap:10 }}>
-                {node.replies.map((r: any) => renderCommentNode(r, depth + 1))}
+
+            {replies.length > 0 && (
+              <View style={{ marginTop:8, gap:10 }}>
+                {visibleReplies.map((r: any) => renderCommentNode(r, depth + 1))}
+                {!showAll && replies.length > MAX_COLLAPSED && (
+                  <Pressable onPress={()=>{ setExpandedReplies((prev)=>{ const n = new Set(prev); n.add(node.id); return n; }); }}>
+                    <Text style={{ color:'#1173d4', fontWeight:'700' }}>Mostrar {replies.length - MAX_COLLAPSED} respuestas más</Text>
+                  </Pressable>
+                )}
+                {showAll && replies.length > MAX_COLLAPSED && (
+                  <Pressable onPress={()=>{ setExpandedReplies((prev)=>{ const n = new Set(prev); n.delete(node.id); return n; }); }}>
+                    <Text style={{ color:'#6b7280', fontWeight:'700' }}>Mostrar menos</Text>
+                  </Pressable>
+                )}
               </View>
             )}
           </View>
