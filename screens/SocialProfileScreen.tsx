@@ -3,6 +3,8 @@ import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable } from
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { follow, getUserById, listUserPosts, Post, unfollow } from '../services/social';
 import { getProducts } from '../services/products';
+import { getCoupons } from '../services/coupons';
+import { getEvents } from '../services/events';
 import { getAverageRating, listReviewsByUser } from '../services/reviews';
 
 export default function SocialProfileScreen({ route, navigation }: any) {
@@ -13,6 +15,10 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const featured = useMemo(()=> getProducts().slice(0,4), []);
   const rating = useMemo(()=> getAverageRating(userId), [userId]);
   const reviews = useMemo(()=> listReviewsByUser(userId), [userId, version]);
+  const coupons = useMemo(()=> getCoupons().slice(0,4), []);
+  const events = useMemo(()=> getEvents().slice(0,2), []);
+  const images = useMemo(()=> posts.filter(p=>!!p.imageUrl).map(p=>p.imageUrl as string), [posts]);
+  const [view, setView] = useState<'ig'|'tw'|'biz'>('ig');
   if (!user) return null;
 
   const refresh = () => setVersion((v) => v + 1);
@@ -20,7 +26,11 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.safe}>
       <FlatList
-        data={[{ kind:'stats' },{ kind:'actions' },{ kind:'featured' },{ kind:'reviews' }, ...posts.map(p=>({ kind:'post', post:p }))] as any[]}
+        data={(view==='tw'
+          ? ([{ kind:'stats' },{ kind:'actions' },{ kind:'tabs' }, ...posts.map(p=>({ kind:'post', post:p }))]
+          ) : view==='biz'
+          ? ([{ kind:'stats' },{ kind:'actions' },{ kind:'tabs' },{ kind:'featured' },{ kind:'coupons' },{ kind:'events' },{ kind:'reviews' }]
+          ) : ([{ kind:'stats' },{ kind:'actions' },{ kind:'tabs' },{ kind:'iggrid' }])) as any[]}
         keyExtractor={(i, idx) => i.kind==='post'?i.post.id:String(idx)}
         contentContainerStyle={{ padding: 16, gap: 12, paddingTop: 0 }}
         ListHeaderComponent={() => (
@@ -56,10 +66,33 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               <View style={styles.statBox}><Text style={styles.statValue}>{posts.length}</Text><Text style={styles.statLabel}>Transacciones</Text></View>
               <View style={styles.statBox}><Text style={styles.statValue}>1.2M</Text><Text style={styles.statLabel}>Seguidores</Text></View>
             </View>
+          ) : item.kind==='tabs' ? (
+            <View style={styles.tabsRow}>
+              <Pressable style={[styles.tabBtn, view==='ig' && styles.tabBtnActive]} onPress={()=>setView('ig')}>
+                <MaterialIcons name={'grid-on'} size={18} color={view==='ig'?'#111827':'#6b7280'} />
+                <Text style={[styles.tabText, view==='ig' && styles.tabTextActive]}>Fotos</Text>
+              </Pressable>
+              <Pressable style={[styles.tabBtn, view==='tw' && styles.tabBtnActive]} onPress={()=>setView('tw')}>
+                <MaterialIcons name={'article'} size={18} color={view==='tw'?'#111827':'#6b7280'} />
+                <Text style={[styles.tabText, view==='tw' && styles.tabTextActive]}>Posts</Text>
+              </Pressable>
+              <Pressable style={[styles.tabBtn, view==='biz' && styles.tabBtnActive]} onPress={()=>setView('biz')}>
+                <MaterialIcons name={'storefront'} size={18} color={view==='biz'?'#111827':'#6b7280'} />
+                <Text style={[styles.tabText, view==='biz' && styles.tabTextActive]}>Comercial</Text>
+              </Pressable>
+            </View>
           ) : item.kind==='actions' ? (
             <View style={{ flexDirection:'row', gap: 12 }}>
               <Pressable style={[styles.ctaPrimary, { flex:1 }]} onPress={() => { follow(user.id); setVersion(v=>v+1); }}><Text style={styles.ctaPrimaryText}>Seguir</Text></Pressable>
               <Pressable style={[styles.ctaSecondary, { flex:1 }]} onPress={() => { unfollow(user.id); setVersion(v=>v+1); }}><Text style={styles.ctaSecondaryText}>Contactar</Text></Pressable>
+            </View>
+          ) : item.kind==='iggrid' ? (
+            <View>
+              <View style={{ flexDirection:'row', flexWrap:'wrap', gap: 4 }}>
+                {images.map((src, i)=> (
+                  <Image key={i} source={{ uri: src }} style={styles.igImage} />
+                ))}
+              </View>
             </View>
           ) : item.kind==='featured' ? (
             <View>
@@ -71,6 +104,36 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                     <View style={{ padding:8 }}>
                       <Text style={styles.cardTitle}>{idx===1?'Bono Exclusivo':idx===3?'Servicio Especial':p.title}</Text>
                       <Text style={styles.cardMeta}>{idx===1?'Canjeable':p.price>0?`$${p.price.toFixed(2)}`:'Consultar'}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : item.kind==='coupons' ? (
+            <View>
+              <View style={[styles.rowBetween, { marginBottom: 8 }]}><Text style={styles.sectionTitle}>Cupones</Text><Pressable><Text style={styles.link}>Ver todo</Text></Pressable></View>
+              <View style={{ flexDirection:'row', flexWrap:'wrap', gap: 12 }}>
+                {coupons.map((c)=> (
+                  <View key={c.id} style={styles.card}>
+                    <Image source={{ uri: c.images[0] }} style={styles.cardImage} />
+                    <View style={{ padding:8 }}>
+                      <Text style={styles.cardTitle}>{c.title}</Text>
+                      <Text style={styles.cardMeta}>{c.price>0?`$${c.price.toFixed(2)}`:'Gratis'}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : item.kind==='events' ? (
+            <View>
+              <View style={[styles.rowBetween, { marginBottom: 8 }]}><Text style={styles.sectionTitle}>Eventos</Text><Pressable><Text style={styles.link}>Ver todo</Text></Pressable></View>
+              <View style={{ gap: 12 }}>
+                {events.map((e)=> (
+                  <View key={e.id} style={styles.reviewCard}>
+                    <Image source={{ uri: e.images[0] }} style={{ width:56, height:56, borderRadius:8, marginRight:8 }} />
+                    <View style={{ flex:1 }}>
+                      <Text style={styles.cardTitle}>{e.title}</Text>
+                      <Text style={styles.cardMeta}>{new Date(e.date).toLocaleDateString()} • {e.location}</Text>
                     </View>
                   </View>
                 ))}
@@ -140,6 +203,12 @@ const styles = StyleSheet.create({
   ctaPrimaryText: { color:'#ffffff', fontWeight:'800' },
   ctaSecondary: { height: 44, borderRadius: 12, backgroundColor: '#e5e7eb', alignItems:'center', justifyContent:'center' },
   ctaSecondaryText: { color:'#111827', fontWeight:'800' },
+  tabsRow: { flexDirection:'row', justifyContent:'space-around', borderBottomWidth:1, borderColor:'#e5e7eb', paddingVertical:8 },
+  tabBtn: { flexDirection:'row', alignItems:'center', gap:6, paddingVertical:6, paddingHorizontal:10, borderRadius:999 },
+  tabBtnActive: { backgroundColor:'#f3f4f6' },
+  tabText: { color:'#6b7280', fontWeight:'700' },
+  tabTextActive: { color:'#111827' },
+  igImage: { width: '32%', aspectRatio: 1, borderRadius: 8, backgroundColor:'#e5e7eb' },
   post: { backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', padding: 12 },
   postText: { color: '#0f172a', marginBottom: 6 },
   postImage: { width: '100%', aspectRatio: 16/9, borderRadius: 8, backgroundColor: '#e5e7eb', marginBottom: 6 },
