@@ -8,6 +8,9 @@ Una super‑app escrita en React Native (Expo) que une cupones/bonos, marketplac
 </div>
 
 ---
+## 📌 Estado del proyecto
+
+- Lee el resumen vivo: [docs/RESUMEN_ESTADO.md](docs/RESUMEN_ESTADO.md)
 
 ## ✨ Visión
 
