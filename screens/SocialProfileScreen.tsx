@@ -59,9 +59,9 @@ export default function SocialProfileScreen({ route, navigation }: any) {
     const indentPx = indentDepth * INDENT_UNIT;
 
     const replies: any[] = node.replies || [];
-    const MAX_COLLAPSED = 2;
+    const collapseAtThisLevel = depth >= 2; // 3er grado (0: primer grado)
     const showAll = expandedReplies.has(node.id);
-    const visibleReplies = showAll ? replies : replies.slice(0, MAX_COLLAPSED);
+    const visibleReplies = collapseAtThisLevel ? (showAll ? replies : []) : replies;
 
     return (
       <View key={node.id} style={{ paddingLeft: indentPx, position:'relative' }}>
@@ -90,12 +90,12 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             {replies.length > 0 && (
               <View style={{ marginTop:8, gap:10 }}>
                 {visibleReplies.map((r: any) => renderCommentNode(r, depth + 1))}
-                {!showAll && replies.length > MAX_COLLAPSED && (
+                {collapseAtThisLevel && !showAll && replies.length > 0 && (
                   <Pressable onPress={()=>{ setExpandedReplies((prev)=>{ const n = new Set(prev); n.add(node.id); return n; }); }}>
-                    <Text style={{ color:'#1173d4', fontWeight:'700' }}>Mostrar {replies.length - MAX_COLLAPSED} respuestas más</Text>
+                    <Text style={{ color:'#1173d4', fontWeight:'700' }}>Mostrar más respuestas ({replies.length})</Text>
                   </Pressable>
                 )}
-                {showAll && replies.length > MAX_COLLAPSED && (
+                {collapseAtThisLevel && showAll && replies.length > 0 && (
                   <Pressable onPress={()=>{ setExpandedReplies((prev)=>{ const n = new Set(prev); n.delete(node.id); return n; }); }}>
                     <Text style={{ color:'#6b7280', fontWeight:'700' }}>Mostrar menos</Text>
                   </Pressable>
