@@ -25,7 +25,6 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
   const replyInputRef = useRef<TextInput | null>(null);
-  const replyInputRef = useRef<TextInput | null>(null);
   const translateY = useRef(new Animated.Value(0)).current;
   const pan = useRef(
     PanResponder.create({
@@ -53,7 +52,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const refresh = () => setVersion((v) => v + 1);
 
   function renderCommentNode(node: any, depth: number) {
-    return (
+  return (
       <View key={node.id}>
         <View style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
           <Image source={{ uri: node.author.avatarUrl || 'https://i.pravatar.cc/100?img=31' }} style={{ width:32, height:32, borderRadius:999, backgroundColor:'#e5e7eb', marginLeft: depth ? 14 : 0 }} />
@@ -61,17 +60,17 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
               <Text style={{ fontWeight:'800', color:'#111827' }}>{node.author.name}</Text>
               <Text style={{ color:'#6b7280' }}>{new Date(node.createdAt).toLocaleString()}</Text>
-            </View>
+      </View>
             <Text style={{ color:'#111827', marginTop:2 }}>{node.text}</Text>
             <View style={{ flexDirection:'row', gap:16, marginTop:6 }}>
               <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ toggleLikeComment(node.id); refresh(); }}>
                 <MaterialIcons name={node.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={node.likedByMe ? '#ef4444' : '#6b7280'} />
                 <Text style={{ color:node.likedByMe ? '#ef4444' : '#6b7280' }}>{node.likes || 0}</Text>
-              </Pressable>
+        </Pressable>
               <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ setThreadOpen({ postId: threadOpen!.postId, replyingToId: node.id }); setTimeout(()=>replyInputRef.current?.focus(), 0); }}>
                 <MaterialIcons name={'reply'} size={16} color={'#6b7280'} />
                 <Text style={{ color:'#6b7280' }}>Responder</Text>
-              </Pressable>
+        </Pressable>
             </View>
             {node.replies?.length > 0 && (
               <View style={{ marginLeft:14, marginTop:8, borderLeftWidth:1, borderColor:'#e5e7eb', paddingLeft:10, gap:10 }}>
@@ -282,7 +281,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                   </Pressable>
                 ))}
               </View>
-            </View>
+          </View>
           </Modal>
         )}
       />
