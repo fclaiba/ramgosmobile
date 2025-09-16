@@ -87,6 +87,10 @@ export function listUserPosts(userId: string): Post[] {
   return POSTS.filter((p) => p.author.id === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export function getPostById(postId: string): Post | undefined {
+  return POSTS.find((p) => p.id === postId);
+}
+
 export function createPost(input: { text?: string; imageUrl?: string }): Post {
   const trimmed = (input.text || '').trim();
   const limited = trimmed.length > 280 ? trimmed.slice(0, 280) : trimmed;

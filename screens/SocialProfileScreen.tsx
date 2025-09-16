@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
-import { listCommentsTree, toggleLikeComment } from '../services/social';
+import { getPostById, listCommentsTree, toggleLikeComment } from '../services/social';
 import { getProducts } from '../services/products';
 import { getCoupons } from '../services/coupons';
 import { getEvents } from '../services/events';
@@ -22,8 +22,9 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [view, setView] = useState<'ig'|'tw'|'biz'>('ig');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
-  const [threadOpen, setThreadOpen] = useState<{ postId: string } | null>(null);
+  const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
+  const replyInputRef = useRef<TextInput | null>(null);
   const translateY = useRef(new Animated.Value(0)).current;
   const pan = useRef(
     PanResponder.create({
@@ -260,6 +261,19 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             <Pressable onPress={()=>setThreadOpen(null)} style={{ padding:6 }}><MaterialIcons name={'close'} size={22} color={'#111827'} /></Pressable>
             <Text style={{ marginLeft:8, fontWeight:'800', color:'#111827' }}>Respuestas</Text>
           </View>
+          {threadOpen && (() => { const p = getPostById(threadOpen.postId); if (!p) return null as any; return (
+            <View style={{ paddingHorizontal:16, paddingTop:12, paddingBottom:8, borderBottomWidth:1, borderColor:'#e5e7eb' }}>
+              <View style={{ flexDirection:'row', alignItems:'center', gap:12, marginBottom:6 }}>
+                <Image source={{ uri: p.author.avatarUrl || 'https://i.pravatar.cc/100?img=25' }} style={{ width: 36, height: 36, borderRadius: 999 }} />
+                <View style={{ flexDirection:'row', alignItems:'center', flexWrap:'wrap', flex:1 }}>
+                  <Text style={{ fontWeight:'800', color:'#111827' }}>{p.author.name}</Text>
+                  <Text style={{ color:'#6b7280' }}> @{p.author.handle || 'usuario'} · {new Date(p.createdAt).toLocaleDateString()}</Text>
+                </View>
+              </View>
+              {!!p.text && <Text style={{ color:'#0f172a', fontSize:15, lineHeight:22, marginBottom:8 }}>{p.text}</Text>}
+              {!!p.imageUrl && <Image source={{ uri: p.imageUrl }} style={{ borderRadius:12, width:'100%', aspectRatio:16/9, backgroundColor:'#e5e7eb' }} />}
+            </View>
+          ); })()}
           <FlatList
             data={listCommentsTree(threadOpen?.postId || '').slice()}
             keyExtractor={(i)=>i.id}
@@ -279,7 +293,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                         <MaterialIcons name={item.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={item.likedByMe ? '#ef4444' : '#6b7280'} />
                         <Text style={{ color:item.likedByMe ? '#ef4444' : '#6b7280' }}>{item.likes || 0}</Text>
                       </Pressable>
-                      <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ addComment(threadOpen!.postId, `@${item.author.handle || 'user'} `, item.id); setVersion(v=>v+1); }}>
+                      <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ setThreadOpen({ postId: threadOpen!.postId, replyingToId: item.id }); }}>
                         <MaterialIcons name={'reply'} size={16} color={'#6b7280'} />
                         <Text style={{ color:'#6b7280' }}>Responder</Text>
                       </Pressable>
@@ -307,11 +321,9 @@ export default function SocialProfileScreen({ route, navigation }: any) {
           />
           <View style={{ position:'absolute', left:0, right:0, bottom:0, borderTopWidth:1, borderColor:'#e5e7eb', backgroundColor:'#ffffff', padding:12, flexDirection:'row', alignItems:'center', gap:10 }}>
             <Image source={{ uri: 'https://i.pravatar.cc/100?img=25' }} style={{ width:28, height:28, borderRadius:999, backgroundColor:'#e5e7eb' }} />
-            <View style={{ flex:1, borderWidth:1, borderColor:'#d1d5db', borderRadius:999, paddingHorizontal:14, paddingVertical:8 }}>
-              <Text style={{ color:'#6b7280' }}>{replyText ? '' : 'Escribe una respuesta...'}</Text>
-            </View>
+            <TextInput value={replyText} onChangeText={setReplyText} maxLength={280} placeholder={threadOpen?.replyingToId ? 'Respondiendo a un comentario…' : 'Escribe una respuesta...'} placeholderTextColor={'#6b7280'} style={{ flex:1, borderWidth:1, borderColor:'#d1d5db', borderRadius:999, paddingHorizontal:14, paddingVertical:8, color:'#111827' }} />
             <Pressable
-              onPress={() => { if (threadOpen && replyText.trim()) { addComment(threadOpen.postId, replyText.trim()); setReplyText(''); setVersion(v=>v+1); } }}
+              onPress={() => { if (threadOpen && replyText.trim()) { addComment(threadOpen.postId, replyText.trim(), threadOpen.replyingToId); setReplyText(''); setThreadOpen({ postId: threadOpen.postId }); setVersion(v=>v+1); } }}
               style={{ paddingHorizontal:12, paddingVertical:8, borderRadius:999, backgroundColor:'#1173d4' }}
             >
               <Text style={{ color:'#ffffff', fontWeight:'800' }}>Responder</Text>
