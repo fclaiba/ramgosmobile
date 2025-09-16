@@ -8,9 +8,12 @@ export type UserProfile = {
 export type Comment = {
   id: string;
   postId: string;
+  parentId?: string;
   author: UserProfile;
   text: string;
   createdAt: string;
+  likes?: number;
+  likedByMe?: boolean;
 };
 
 export type Post = {
@@ -120,19 +123,53 @@ export function toggleRetweet(postId: string): Post | undefined {
   return p;
 }
 
-export function addComment(postId: string, text: string): Comment | undefined {
+export function addComment(postId: string, text: string, parentId?: string): Comment | undefined {
   const p = POSTS.find((x) => x.id === postId);
   if (!p) return undefined;
   const c: Comment = {
     id: 'c_' + Math.random().toString(36).slice(2, 9),
     postId,
+    parentId,
     author: CURRENT_USER,
     text: text.trim().slice(0, 280),
     createdAt: new Date().toISOString(),
+    likes: 0,
+    likedByMe: false,
   };
   p.comments.push(c);
   if (p.author.id !== CURRENT_USER.id) notify(p.author.id, { kind: 'comment', actor: CURRENT_USER, postId: p.id, commentId: c.id });
   return c;
+}
+
+export type CommentNode = Comment & { replies: CommentNode[] };
+
+export function listCommentsTree(postId: string): CommentNode[] {
+  const p = POSTS.find((x) => x.id === postId);
+  if (!p) return [];
+  const byId: Record<string, CommentNode> = {};
+  p.comments.forEach((c) => { byId[c.id] = { ...c, replies: [] }; });
+  const roots: CommentNode[] = [];
+  p.comments.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).forEach((c) => {
+    const node = byId[c.id];
+    if (c.parentId && byId[c.parentId]) {
+      byId[c.parentId].replies.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  return roots;
+}
+
+export function toggleLikeComment(commentId: string): Comment | undefined {
+  for (const p of POSTS) {
+    const c = p.comments.find((x) => x.id === commentId);
+    if (c) {
+      c.likedByMe = !c.likedByMe;
+      c.likes = Math.max(0, (c.likes || 0) + (c.likedByMe ? 1 : -1));
+      return c;
+    }
+  }
+  return undefined;
 }
 
 export type Message = {

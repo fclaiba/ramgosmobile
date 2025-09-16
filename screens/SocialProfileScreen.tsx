@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
+import { listCommentsTree, toggleLikeComment } from '../services/social';
 import { getProducts } from '../services/products';
 import { getCoupons } from '../services/coupons';
 import { getEvents } from '../services/events';
@@ -21,6 +22,8 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [view, setView] = useState<'ig'|'tw'|'biz'>('ig');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [threadOpen, setThreadOpen] = useState<{ postId: string } | null>(null);
+  const [replyText, setReplyText] = useState('');
   const translateY = useRef(new Animated.Value(0)).current;
   const pan = useRef(
     PanResponder.create({
@@ -205,7 +208,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               <View style={styles.tweetActionsRow}>
                 <Pressable
                   style={styles.tweetAction}
-                  onPress={() => { addComment(item.post.id, '👍'); setVersion(v=>v+1); }}
+                  onPress={() => { setThreadOpen({ postId: item.post.id }); }}
                 >
                   <MaterialIcons name={'chat-bubble-outline'} size={16} color={'#6b7280'} />
                   <Text style={styles.tweetActionText}>{item.post.comments?.length || 0}</Text>
@@ -245,10 +248,77 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                   </Pressable>
                 ))}
               </View>
-          </View>
+            </View>
           </Modal>
         )}
       />
+
+      {/* Thread modal */}
+      <Modal visible={!!threadOpen} animationType="slide" onRequestClose={()=>setThreadOpen(null)}>
+        <SafeAreaView style={{ flex:1, backgroundColor:'#ffffff' }}>
+          <View style={{ flexDirection:'row', alignItems:'center', padding:12, borderBottomWidth:1, borderColor:'#e5e7eb' }}>
+            <Pressable onPress={()=>setThreadOpen(null)} style={{ padding:6 }}><MaterialIcons name={'close'} size={22} color={'#111827'} /></Pressable>
+            <Text style={{ marginLeft:8, fontWeight:'800', color:'#111827' }}>Respuestas</Text>
+          </View>
+          <FlatList
+            data={listCommentsTree(threadOpen?.postId || '').slice()}
+            keyExtractor={(i)=>i.id}
+            contentContainerStyle={{ padding:16, paddingBottom:100, gap:12 }}
+            renderItem={({ item }) => (
+              <View>
+                <View style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
+                  <Image source={{ uri: item.author.avatarUrl || 'https://i.pravatar.cc/100?img=31' }} style={{ width:32, height:32, borderRadius:999, backgroundColor:'#e5e7eb' }} />
+                  <View style={{ flex:1 }}>
+                    <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                      <Text style={{ fontWeight:'800', color:'#111827' }}>{item.author.name}</Text>
+                      <Text style={{ color:'#6b7280' }}>{new Date(item.createdAt).toLocaleString()}</Text>
+                    </View>
+                    <Text style={{ color:'#111827', marginTop:2 }}>{item.text}</Text>
+                    <View style={{ flexDirection:'row', gap:16, marginTop:6 }}>
+                      <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ toggleLikeComment(item.id); setVersion(v=>v+1); }}>
+                        <MaterialIcons name={item.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={item.likedByMe ? '#ef4444' : '#6b7280'} />
+                        <Text style={{ color:item.likedByMe ? '#ef4444' : '#6b7280' }}>{item.likes || 0}</Text>
+                      </Pressable>
+                      <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ addComment(threadOpen!.postId, `@${item.author.handle || 'user'} `, item.id); setVersion(v=>v+1); }}>
+                        <MaterialIcons name={'reply'} size={16} color={'#6b7280'} />
+                        <Text style={{ color:'#6b7280' }}>Responder</Text>
+                      </Pressable>
+                    </View>
+                    {item.replies?.length > 0 && (
+                      <View style={{ marginLeft:14, marginTop:8, borderLeftWidth:1, borderColor:'#e5e7eb', paddingLeft:10, gap:10 }}>
+                        {item.replies.map((r) => (
+                          <View key={r.id} style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
+                            <Image source={{ uri: r.author.avatarUrl || 'https://i.pravatar.cc/100?img=32' }} style={{ width:26, height:26, borderRadius:999, backgroundColor:'#e5e7eb' }} />
+                            <View style={{ flex:1 }}>
+                              <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+                                <Text style={{ fontWeight:'800', color:'#111827' }}>{r.author.name}</Text>
+                                <Text style={{ color:'#6b7280' }}>{new Date(r.createdAt).toLocaleString()}</Text>
+                              </View>
+                              <Text style={{ color:'#111827', marginTop:2 }}>{r.text}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+          />
+          <View style={{ position:'absolute', left:0, right:0, bottom:0, borderTopWidth:1, borderColor:'#e5e7eb', backgroundColor:'#ffffff', padding:12, flexDirection:'row', alignItems:'center', gap:10 }}>
+            <Image source={{ uri: 'https://i.pravatar.cc/100?img=25' }} style={{ width:28, height:28, borderRadius:999, backgroundColor:'#e5e7eb' }} />
+            <View style={{ flex:1, borderWidth:1, borderColor:'#d1d5db', borderRadius:999, paddingHorizontal:14, paddingVertical:8 }}>
+              <Text style={{ color:'#6b7280' }}>{replyText ? '' : 'Escribe una respuesta...'}</Text>
+            </View>
+            <Pressable
+              onPress={() => { if (threadOpen && replyText.trim()) { addComment(threadOpen.postId, replyText.trim()); setReplyText(''); setVersion(v=>v+1); } }}
+              style={{ paddingHorizontal:12, paddingVertical:8, borderRadius:999, backgroundColor:'#1173d4' }}
+            >
+              <Text style={{ color:'#ffffff', fontWeight:'800' }}>Responder</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
