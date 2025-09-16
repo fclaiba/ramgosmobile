@@ -83,10 +83,12 @@ export function listUserPosts(userId: string): Post[] {
 }
 
 export function createPost(input: { text?: string; imageUrl?: string }): Post {
+  const trimmed = (input.text || '').trim();
+  const limited = trimmed.length > 280 ? trimmed.slice(0, 280) : trimmed;
   const post: Post = {
     id: 'p_' + Math.random().toString(36).slice(2, 9),
     author: CURRENT_USER,
-    text: input.text?.trim() || undefined,
+    text: limited || undefined,
     imageUrl: input.imageUrl,
     likes: 0,
     likedByMe: false,

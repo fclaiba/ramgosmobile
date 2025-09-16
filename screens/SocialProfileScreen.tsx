@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { follow, getUserById, listUserPosts, Post, unfollow } from '../services/social';
 import { getProducts } from '../services/products';
@@ -19,6 +19,30 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const events = useMemo(()=> getEvents().slice(0,2), []);
   const images = useMemo(()=> posts.filter(p=>!!p.imageUrl).map(p=>p.imageUrl as string), [posts]);
   const [view, setView] = useState<'ig'|'tw'|'biz'>('ig');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 6,
+      onPanResponderMove: Animated.event([null, { dy: translateY }], { useNativeDriver: false }),
+      onPanResponderRelease: (_e, g) => {
+        if (g.dy > 80) {
+          Animated.timing(translateY, { toValue: 300, duration: 160, useNativeDriver: true }).start(() => {
+            translateY.setValue(0);
+            setViewerOpen(false);
+          });
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
+
+  function openViewer(index: number) {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  }
   if (!user) return null;
 
   const refresh = () => setVersion((v) => v + 1);
@@ -90,7 +114,9 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             <View>
               <View style={{ flexDirection:'row', flexWrap:'wrap', gap: 4 }}>
                 {images.map((src, i)=> (
-                  <Image key={i} source={{ uri: src }} style={styles.igImage} />
+                  <Pressable key={i} onPress={()=>openViewer(i)}>
+                    <Image source={{ uri: src }} style={styles.igImage} />
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -156,11 +182,28 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             </View>
           ) : (
             <View style={styles.post}>
-              {!!item.post.text && <Text style={styles.postText}>{item.post.text}</Text>}
+              {!!item.post.text && <Text style={styles.postText}>{item.post.text.length > 280 ? item.post.text.slice(0,280) + '…' : item.post.text}</Text>}
               {!!item.post.imageUrl && <Image source={{ uri: item.post.imageUrl }} style={styles.postImage} />}
               <Text style={styles.time}>{new Date(item.post.createdAt).toLocaleString()}</Text>
             </View>
           )
+        )}
+        ListFooterComponent={() => (
+          <Modal visible={viewerOpen} transparent animationType="fade" onRequestClose={()=>setViewerOpen(false)}>
+            <View style={styles.viewerBackdrop}>
+              <Animated.View style={[styles.viewerCard, { transform:[{ translateY }] }]} {...pan.panHandlers}>
+                <Image source={{ uri: images[viewerIndex] }} style={styles.viewerImage} />
+                <View style={styles.viewerHandle} />
+              </Animated.View>
+              <View style={styles.viewerThumbs}>
+                {images.map((src, i)=> (
+                  <Pressable key={i} onPress={()=>setViewerIndex(i)}>
+                    <Image source={{ uri: src }} style={[styles.viewerThumb, i===viewerIndex && styles.viewerThumbActive]} />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </Modal>
         )}
       />
     </SafeAreaView>
@@ -209,6 +252,13 @@ const styles = StyleSheet.create({
   tabText: { color:'#6b7280', fontWeight:'700' },
   tabTextActive: { color:'#111827' },
   igImage: { width: '32%', aspectRatio: 1, borderRadius: 8, backgroundColor:'#e5e7eb' },
+  viewerBackdrop: { flex:1, backgroundColor:'rgba(0,0,0,0.85)', alignItems:'center', justifyContent:'center', padding:16 },
+  viewerCard: { width:'100%', borderRadius:16, overflow:'hidden', backgroundColor:'#000' },
+  viewerImage: { width:'100%', aspectRatio: 1 },
+  viewerHandle: { alignSelf:'center', marginVertical:8, width:48, height:4, borderRadius:999, backgroundColor:'#9ca3af' },
+  viewerThumbs: { position:'absolute', bottom:20, flexDirection:'row', gap:6 },
+  viewerThumb: { width:40, height:40, borderRadius:8, opacity:0.6 },
+  viewerThumbActive: { opacity:1, borderWidth:2, borderColor:'#fff' },
   post: { backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', padding: 12 },
   postText: { color: '#0f172a', marginBottom: 6 },
   postImage: { width: '100%', aspectRatio: 16/9, borderRadius: 8, backgroundColor: '#e5e7eb', marginBottom: 6 },
