@@ -12,7 +12,7 @@ type Props = {
 const WIDTH = Math.min(320, Dimensions.get('window').width * 0.8);
 
 export default function SideDrawer({ open, onClose }: Props) {
-  const { role, setRole } = useUser();
+  const { role, setRole, userId, setUserId } = useUser();
   const translateX = useRef(new Animated.Value(-WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -62,7 +62,7 @@ export default function SideDrawer({ open, onClose }: Props) {
             { icon: 'event', label: 'Eventos', action: () => navigate('MyEvents') },
             { icon: 'storefront', label: 'Marketplace', action: () => navigate('MyMarket') },
             { icon: 'receipt', label: 'Transacciones', action: () => navigate('TransactionsHistory') },
-            { icon: 'person', label: 'Perfil', action: () => navigate('Profile') },
+            { icon: 'person', label: 'Perfil', action: () => navigate('SocialProfile', { userId }) },
             { icon: 'settings', label: 'Configuración', action: () => {} },
             { icon: 'logout', label: 'Cerrar sesión', action: () => {} },
           );
@@ -114,7 +114,7 @@ export default function SideDrawer({ open, onClose }: Props) {
               { label: 'Max', value: 'u2' },
               { label: 'Luna', value: 'u3' },
             ].map((u) => (
-              <Pressable key={u.value} style={styles.rolePill} onPress={() => { /* consumer of useUser can set against provider if needed */ }}>
+              <Pressable key={u.value} style={styles.rolePill} onPress={() => { setUserId(u.value as any); }}>
                 <Text style={styles.rolePillText}>{u.label}</Text>
               </Pressable>
             ))}
