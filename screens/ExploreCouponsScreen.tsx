@@ -9,6 +9,7 @@ import {
   FlatList,
   ImageBackground,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +27,7 @@ type SortKey = 'relevance' | 'priceAsc' | 'priceDesc' | 'rating' | 'endingSoon' 
 
 export default function ExploreCouponsScreen() {
   const nav = useNavigation<any>();
+  const { width } = useWindowDimensions();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [sector, setSector] = useState<SectorKey>('all');
@@ -130,7 +132,7 @@ export default function ExploreCouponsScreen() {
         </Pressable>
       </View>
 
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+      <View style={{ paddingHorizontal: Math.min(24, width < 380 ? 12 : 16), paddingBottom: 8 }}>
         <View style={styles.searchWrap}>
           <MaterialIcons name={'search'} size={18} color={'#94a3b8'} style={{ marginLeft: 12 }} />
           <TextInput
@@ -143,7 +145,7 @@ export default function ExploreCouponsScreen() {
         </View>
       </View>
 
-      <View style={styles.sectionHeader}>
+      <View style={[styles.sectionHeader, { paddingHorizontal: Math.min(24, width < 380 ? 12 : 16) }]}>
         <Text style={styles.sectionTitle}>Bonos Disponibles</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Pressable style={styles.iconBtn} onPress={() => setView('list')} accessibilityLabel="Vista lista">
@@ -157,7 +159,7 @@ export default function ExploreCouponsScreen() {
 
       {/* Barra de distancia (debajo del search, arriba del mapa) */}
       {view === 'map' && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <View style={{ paddingHorizontal: Math.min(24, width < 380 ? 12 : 16), paddingBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ flex: 1 }}>
               <Slider minimumValue={1} maximumValue={50} step={1} value={distanceKm} onValueChange={setDistanceKm as any} minimumTrackTintColor={PRIMARY} maximumTrackTintColor={'#e5e7eb'} thumbTintColor={PRIMARY} />
@@ -169,8 +171,9 @@ export default function ExploreCouponsScreen() {
               }} keyboardType={'numeric'} style={{ width: 56, color: '#0f172a' }} placeholder={'km'} placeholderTextColor={'#94a3b8'} />
               <Text style={{ color: '#64748b', marginLeft: 4 }}>km</Text>
             </View>
-            <Pressable style={styles.iconBtn} onPress={() => mapApi?.centerOnMyLocation()} accessibilityLabel="Mi ubicación">
+            <Pressable style={styles.locBtn} onPress={() => mapApi?.centerOnMyLocation()} accessibilityLabel="Mi ubicación">
               <MaterialIcons name={'my-location'} size={18} color={'#0f172a'} />
+              <Text style={{ color: '#0f172a', fontWeight: '800' }}>Mi ubicación</Text>
             </Pressable>
           </View>
         </View>
@@ -191,8 +194,8 @@ export default function ExploreCouponsScreen() {
           key={view}
           keyExtractor={(i) => i.id}
           numColumns={view === 'grid' ? 2 : 1}
-          columnWrapperStyle={view === 'grid' ? { gap: 12, paddingHorizontal: 16 } : undefined}
-          contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: view === 'grid' ? 0 : 16, gap: 12 }}
+          columnWrapperStyle={view === 'grid' ? { gap: 12, paddingHorizontal: Math.min(24, width < 380 ? 12 : 16) } : undefined}
+          contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: view === 'grid' ? 0 : Math.min(24, width < 380 ? 12 : 16), gap: 12 }}
           renderItem={renderCard}
         />
       )}
@@ -299,6 +302,7 @@ const styles = StyleSheet.create({
   modalSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#ffffff', padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16, gap: 8 },
   optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   optionText: { fontSize: 16, color: '#0f172a', textTransform: 'capitalize' },
+  locBtn: { height: 40, borderRadius: 8, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 10 },
 });
 
 

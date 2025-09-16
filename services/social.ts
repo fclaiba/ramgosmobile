@@ -28,6 +28,7 @@ let CURRENT_USER: UserProfile = { id: 'u_me', name: 'Tú', handle: 'tu' };
 
 const USERS: UserProfile[] = [
   CURRENT_USER,
+  { id: 'support', name: 'Soporte Urgente', handle: 'soporte' },
   { id: 'u1', name: 'Sofía', handle: 'sofia', avatarUrl: 'https://i.pravatar.cc/150?u=1' },
   { id: 'u2', name: 'Max', handle: 'max', avatarUrl: 'https://i.pravatar.cc/150?u=2' },
   { id: 'u3', name: 'Luna', handle: 'luna', avatarUrl: 'https://i.pravatar.cc/150?u=3' },

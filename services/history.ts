@@ -7,6 +7,7 @@ export type CouponOrder = {
   merchant: string;
   sector: 'gastronomia' | 'aventura' | 'bienestar' | 'cultura' | 'otros';
   status: OrderStatus;
+  amount?: number; // negative expense
   validUntil: string; // ISO date
   createdAt: string; // ISO date
   qrCodeUrl: string;
@@ -15,6 +16,15 @@ export type CouponOrder = {
 const state: { orders: CouponOrder[] } = {
   orders: [],
 };
+
+// Seed demo data
+if (state.orders.length === 0) {
+  state.orders = [
+    { id: 'ORD-1001', couponId: 'c1', title: 'Bono de Aventura Extrema', merchant: 'Aventura SRL', sector: 'aventura', status: 'active', amount: -49, validUntil: new Date(Date.now() + 15*24*3600*1000).toISOString(), createdAt: new Date().toISOString(), qrCodeUrl: '' },
+    { id: 'ORD-1002', couponId: 'c2', title: 'Bono de Gastronomía', merchant: 'Restó Central', sector: 'gastronomia', status: 'redeemed', amount: -35, validUntil: new Date(Date.now() - 1*24*3600*1000).toISOString(), createdAt: new Date(Date.now() - 5*24*3600*1000).toISOString(), qrCodeUrl: '' },
+    { id: 'ORD-1003', couponId: 'c3', title: 'Bono de Bienestar y Relax', merchant: 'Spa Bella', sector: 'bienestar', status: 'expired', amount: -59, validUntil: new Date(Date.now() - 10*24*3600*1000).toISOString(), createdAt: new Date(Date.now() - 30*24*3600*1000).toISOString(), qrCodeUrl: '' },
+  ];
+}
 
 export function addPurchase(order: CouponOrder) {
   state.orders.unshift(order);

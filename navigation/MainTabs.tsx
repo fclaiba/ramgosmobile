@@ -8,6 +8,7 @@ import ExploreCouponsScreen from '../screens/ExploreCouponsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import MarketplaceScreen from '../screens/MarketplaceScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
+import EventsScreen from '../screens/EventsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,8 +28,8 @@ export default function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"home" as any} size={size ?? 22} color={color} />), title: 'Home' }} />
       <Tab.Screen name="Marketplace" component={MarketplaceScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"storefront" as any} size={size ?? 22} color={color} />), title: 'Marketplace' }} />
       <Tab.Screen name="Explorar" component={ExploreCouponsScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"search" as any} size={size ?? 22} color={color} />), title: 'Explorar' }} />
-      <Tab.Screen name="Social" component={FavoritesScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"groups" as any} size={size ?? 22} color={color} />), title: 'Social Network' }} />
-      <Tab.Screen name="Perfil" component={ProfileScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"person" as any} size={size ?? 22} color={color} />), title: 'Perfil' }} />
+      <Tab.Screen name="Eventos" component={EventsScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"event" as any} size={size ?? 22} color={color} />), title: 'Eventos' }} />
+      <Tab.Screen name="Social" component={ProfileScreen} options={{ tabBarIcon: ({ color, size }) => (<MaterialIcons name={"groups" as any} size={size ?? 22} color={color} />), title: 'Social Network' }} />
     </Tab.Navigator>
   );
 }

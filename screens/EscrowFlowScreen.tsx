@@ -1,20 +1,42 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, FlatList } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, FlatList, ScrollView, Alert, useWindowDimensions } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { EscrowTx, getEscrowById, getRemaining, sendMessage, confirmDelivery, openDispute, confirmShipment, releaseFunds } from '../services/escrow';
+import { EscrowTx, getEscrowById, getRemaining, sendMessage, confirmDelivery, openDispute, confirmShipment, releaseFunds, subscribeEscrow } from '../services/escrow';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { useUser } from '../context/UserContext';
 
 type Param = { EscrowFlow: { id: string } };
 
 export default function EscrowFlowScreen() {
   const nav = useNavigation<any>();
   const route = useRoute<RouteProp<Param, 'EscrowFlow'>>();
+  const { role } = useUser();
+  const { width, height } = useWindowDimensions();
   const [tick, setTick] = useState(0);
   const [input, setInput] = useState('');
   const [tracking, setTracking] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [localStatus, setLocalStatus] = useState<EscrowTx['status'] | undefined>(undefined);
+  const [localTracking, setLocalTracking] = useState<string | undefined>(undefined);
   const tx: EscrowTx | undefined = getEscrowById(route.params?.id);
 
-  useEffect(() => { const i = setInterval(() => setTick((x) => x + 1), 60 * 1000); return () => clearInterval(i); }, []);
+  const horizontalPadding = width < 380 ? 12 : 16;
+  const containerMaxWidth = Math.min(800, width - horizontalPadding * 2);
+  const bubbleMaxWidth = Math.min(360, width * 0.78);
+  const chatMaxHeight = Math.min(360, Math.max(160, Math.floor(height * 0.35)));
+
+  useEffect(() => {
+    const i = setInterval(() => setTick((x) => x + 1), 1000);
+    const unsub = subscribeEscrow(() => setTick((x) => x + 1));
+    return () => { clearInterval(i); unsub(); };
+  }, []);
+
+  useEffect(() => {
+    if (tx) {
+      setLocalStatus(tx.status);
+      setLocalTracking(tx.tracking);
+    }
+  }, [tx?.status, tx?.tracking]);
 
   if (!tx) return (
     <SafeAreaView style={styles.safe}><View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Transacción no encontrada</Text></View></SafeAreaView>
@@ -22,10 +44,55 @@ export default function EscrowFlowScreen() {
 
   const remaining = getRemaining(tx.id);
   const onSend = () => { if (!input.trim()) return; sendMessage(tx.id, 'buyer', input.trim()); setInput(''); };
-  const onConfirm = () => { confirmDelivery(tx.id); };
-  const onDispute = () => { openDispute(tx.id); };
-  const onShip = () => { if (!tracking.trim()) return; confirmShipment(tx.id, tracking.trim()); setTracking(''); };
-  const onRelease = () => { releaseFunds(tx.id); };
+  const onConfirm = () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if ((localStatus ?? tx.status) === 'held') {
+        const code = `TRK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+        confirmShipment(tx.id, code);
+        setLocalTracking(code);
+        setLocalStatus('shipped');
+      }
+      if ((localStatus ?? tx.status) !== 'delivered') { confirmDelivery(tx.id); setLocalStatus('delivered'); }
+      Alert.alert('Confirmado', 'Has confirmado la recepción del producto.');
+    } finally { setBusy(false); }
+  };
+  const onDispute = () => {
+    if (busy) return;
+    setBusy(true);
+    try { openDispute(tx.id); setLocalStatus('disputed'); Alert.alert('Disputa iniciada', 'Hemos registrado tu disputa.'); } finally { setBusy(false); }
+  };
+  const onShip = () => {
+    if (busy) return;
+    if ((localStatus ?? tx.status) !== 'held') { Alert.alert('Acción no disponible', 'El envío solo puede confirmarse cuando el pago está retenido.'); return; }
+    setBusy(true);
+    try {
+      const code = (tracking && tracking.trim()) || `TRK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+      confirmShipment(tx.id, code);
+      setTracking('');
+      setLocalTracking(code);
+      setLocalStatus('shipped');
+      Alert.alert('Envío confirmado', `Tracking: ${code}`);
+    } finally { setBusy(false); }
+  };
+  const onRelease = () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if ((localStatus ?? tx.status) === 'held') {
+        const code = `TRK-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+        confirmShipment(tx.id, code);
+        confirmDelivery(tx.id);
+        setLocalTracking(code);
+        setLocalStatus('delivered');
+      }
+      if ((localStatus ?? tx.status) === 'shipped') { confirmDelivery(tx.id); setLocalStatus('delivered'); }
+      releaseFunds(tx.id);
+      setLocalStatus('released');
+      Alert.alert('Fondos liberados', 'Se liberaron los fondos al vendedor.');
+    } finally { setBusy(false); }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -35,26 +102,27 @@ export default function EscrowFlowScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.card}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps={'handled'}>
+        <View style={[styles.card, { marginHorizontal: horizontalPadding, width: containerMaxWidth, alignSelf: 'center' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a' }}>Transacción #{tx.id}</Text>
           <View style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fef3c7', borderRadius: 999 }}>
-            <Text style={{ color: '#92400e', fontWeight: '800' }}>{tx.status === 'disputed' ? 'En disputa' : 'Activo'}</Text>
+            <Text style={{ color: '#92400e', fontWeight: '800' }}>{(localStatus ?? tx.status) === 'disputed' ? 'En disputa' : 'Activo'}</Text>
           </View>
         </View>
         <Text style={{ color: '#64748b', marginTop: 4 }}>{tx.title}</Text>
-      </View>
+        </View>
 
-      <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+        <View style={{ paddingHorizontal: horizontalPadding, marginTop: 12 }}>
         <Text style={{ fontWeight: '800', color: '#0f172a', marginBottom: 8 }}>Progreso de la transacción</Text>
         <View style={{ flexDirection: 'row' }}>
           <View style={{ alignItems: 'center', marginRight: 16 }}>
             {['held','shipped','delivered','released'].map((step, idx) => (
               <View key={step} style={{ alignItems: 'center' }}>
-                <View style={[styles.stepCircle, (tx.status === step || (idx < ['held','shipped','delivered','released'].indexOf(tx.status))) && styles.stepActive]}>
-                  <MaterialIcons name={idx===0?'check':idx===1?'local-shipping':idx===2?'inventory-2':'paid'} size={16} color={(tx.status === step || (idx < ['held','shipped','delivered','released'].indexOf(tx.status))) ? '#ffffff' : '#6b7280'} />
+                <View style={[styles.stepCircle, (((localStatus ?? tx.status) === step) || (idx < ['held','shipped','delivered','released'].indexOf(localStatus ?? tx.status))) && styles.stepActive]}>
+                  <MaterialIcons name={idx===0?'check':idx===1?'local-shipping':idx===2?'inventory-2':'paid'} size={16} color={(((localStatus ?? tx.status) === step) || (idx < ['held','shipped','delivered','released'].indexOf(localStatus ?? tx.status))) ? '#ffffff' : '#6b7280'} />
                 </View>
-                {idx < 3 && <View style={[styles.stepLine, (idx < ['held','shipped','delivered','released'].indexOf(tx.status)) && styles.stepLineActive]} />}
+                {idx < 3 && <View style={[styles.stepLine, (idx < ['held','shipped','delivered','released'].indexOf(localStatus ?? tx.status)) && styles.stepLineActive]} />}
               </View>
             ))}
           </View>
@@ -66,72 +134,86 @@ export default function EscrowFlowScreen() {
             </View>
             <View>
               <Text style={{ color: '#4f46e5', fontWeight: '800' }}>Envío confirmado</Text>
-              <Text style={{ color: '#64748b', fontSize: 12 }}>{tx.tracking ? 'Confirmado' : 'Pendiente'}</Text>
-              <Text style={{ color: '#334155', marginTop: 4 }}>Número de seguimiento: <Text style={{ color: '#2563eb', fontFamily: 'monospace' }}>{tx.tracking ?? '—'}</Text></Text>
+              <Text style={{ color: '#64748b', fontSize: 12 }}>{(localTracking ?? tx.tracking) ? 'Confirmado' : 'Pendiente'}</Text>
+              <Text style={{ color: '#334155', marginTop: 4 }}>Número de seguimiento: <Text style={{ color: '#2563eb', fontFamily: 'monospace' }}>{localTracking ?? tx.tracking ?? '—'}</Text></Text>
             </View>
             <View>
-              <Text style={{ color: tx.status==='delivered'?'#4f46e5':'#6b7280', fontWeight: '800' }}>Producto recibido</Text>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>{tx.status==='delivered'?'Confirmado':'Pendiente'}</Text>
+              <Text style={{ color: (localStatus ?? tx.status)==='delivered'?'#4f46e5':'#6b7280', fontWeight: '800' }}>Producto recibido</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 12 }}>{(localStatus ?? tx.status)==='delivered'?'Confirmado':'Pendiente'}</Text>
               <Text style={{ color: '#334155', marginTop: 4 }}>Esperando confirmación de recepción del producto.</Text>
             </View>
             <View>
-              <Text style={{ color: tx.status==='released'?'#4f46e5':'#6b7280', fontWeight: '800' }}>Fondos liberados</Text>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>{tx.status==='released'?'Hecho':'Pendiente'}</Text>
+              <Text style={{ color: (localStatus ?? tx.status)==='released'?'#4f46e5':'#6b7280', fontWeight: '800' }}>Fondos liberados</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 12 }}>{(localStatus ?? tx.status)==='released'?'Hecho':'Pendiente'}</Text>
               <Text style={{ color: '#334155', marginTop: 4 }}>Se liberarán al confirmar recepción.</Text>
             </View>
           </View>
         </View>
-      </View>
+        </View>
 
-      <View style={styles.card}>
+        <View style={[styles.card, { marginHorizontal: horizontalPadding, width: containerMaxWidth, alignSelf: 'center' }]}>
         <Text style={{ fontWeight: '800', color: '#0f172a' }}>Acciones</Text>
         <View style={{ height: 8 }} />
-        {tx.status === 'held' && (
-          <View>
-            <Text style={{ color: '#64748b', marginBottom: 6 }}>El vendedor puede confirmar el envío e ingresar un número de seguimiento.</Text>
-            <View style={styles.shipRow}>
-              <TextInput value={tracking} onChangeText={setTracking} placeholder={'Número de seguimiento'} placeholderTextColor={'#94a3b8'} style={styles.shipInput} />
-              <Pressable style={[styles.btnPrimary, { height: 40 }]} onPress={onShip}>
-                <MaterialIcons name={'local-shipping'} size={18} color={'#ffffff'} />
-                <Text style={styles.btnPrimaryText}>Confirmar envío</Text>
+        {/* Un solo botón por fase y rol */}
+        {(() => {
+          const status = localStatus ?? tx.status;
+          const isSeller = role === 'business';
+          if (isSeller) {
+            if (status === 'held') {
+              return (
+                <View>
+                  <Text style={{ color: '#64748b', marginBottom: 6 }}>Confirma el envío e ingresa (o genera) el número de seguimiento.</Text>
+                  <View style={styles.shipRow}>
+                    <TextInput value={tracking} onChangeText={setTracking} placeholder={'Número de seguimiento'} placeholderTextColor={'#94a3b8'} style={styles.shipInput} />
+                    <Pressable style={[styles.btnPrimary, { height: 40 }, (busy) && { opacity: 0.6 }]} onPress={onShip} disabled={busy}>
+                      <MaterialIcons name={'local-shipping'} size={18} color={'#ffffff'} />
+                      <Text style={styles.btnPrimaryText}>Confirmar envío</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            }
+            return <Text style={{ color: '#64748b' }}>Esperando acciones del comprador…</Text>;
+          }
+          // Comprador
+          if (status === 'shipped') {
+            return (
+              <Pressable style={[styles.btnPrimary, busy && { opacity: 0.6 }]} onPress={onConfirm} disabled={busy}>
+                <MaterialIcons name={'check-circle'} size={18} color={'#ffffff'} />
+                <Text style={styles.btnPrimaryText}>Confirmar Recepción</Text>
               </Pressable>
-            </View>
-          </View>
-        )}
-        {tx.status !== 'held' && (
-          <Pressable style={styles.btnPrimary} onPress={onConfirm} disabled={tx.status!=='shipped'}>
-          <MaterialIcons name={'check-circle'} size={18} color={'#ffffff'} />
-          <Text style={styles.btnPrimaryText}>Confirmar Recepción</Text>
-          </Pressable>
-        )}
-        {tx.status === 'delivered' && (
-          <>
-            <View style={{ height: 8 }} />
-            <Pressable style={[styles.btnPrimary, { backgroundColor: '#10b981' }]} onPress={onRelease}>
-              <MaterialIcons name={'paid'} size={18} color={'#ffffff'} />
-              <Text style={styles.btnPrimaryText}>Liberar fondos</Text>
-            </Pressable>
-          </>
-        )}
+            );
+          }
+          if (status === 'delivered') {
+            return (
+              <Pressable style={[styles.btnPrimary, { backgroundColor: '#10b981' }, busy && { opacity: 0.6 }]} onPress={onRelease} disabled={busy}>
+                <MaterialIcons name={'paid'} size={18} color={'#ffffff'} />
+                <Text style={styles.btnPrimaryText}>Liberar fondos</Text>
+              </Pressable>
+            );
+          }
+          if (status === 'held') return <Text style={{ color: '#64748b' }}>Esperando envío del vendedor…</Text>;
+          return null;
+        })()}
         <View style={{ height: 8 }} />
         <View style={styles.disputeBox}>
           <Text style={{ color: '#b91c1c', fontWeight: '800', textAlign: 'center' }}>¿Problemas? Inicia una disputa</Text>
-          <Text style={{ color: '#dc2626', fontWeight: '900', fontSize: 18, textAlign: 'center', marginTop: 4 }}>{remaining.hours}h {remaining.minutes}m restantes</Text>
+          <Text style={{ color: '#dc2626', fontWeight: '900', fontSize: 18, textAlign: 'center', marginTop: 4 }}>{remaining.hours}h {remaining.minutes}m {remaining.seconds}s restantes</Text>
           <Pressable style={styles.btnOutline} onPress={onDispute}>
             <MaterialIcons name={'report-problem'} size={18} color={'#b91c1c'} />
             <Text style={styles.btnOutlineText}>Iniciar Disputa</Text>
           </Pressable>
         </View>
-      </View>
+        </View>
 
-      <View style={styles.card}>
+        <View style={[styles.card, { marginHorizontal: horizontalPadding, width: containerMaxWidth, alignSelf: 'center' }]}>
         <Text style={{ fontWeight: '800', color: '#0f172a', marginBottom: 8 }}>Chat de la transacción</Text>
         <FlatList
           data={[...(tx.messages || [])]}
           keyExtractor={(m) => m.id}
           renderItem={({ item }) => (
             <View style={{ alignItems: item.author==='buyer' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
-              <View style={[styles.bubble, item.author==='buyer' ? styles.bubbleBuyer : styles.bubbleSeller]}>
+              <View style={[styles.bubble, { maxWidth: bubbleMaxWidth }, item.author==='buyer' ? styles.bubbleBuyer : styles.bubbleSeller]}>
                 <View style={{ flexDirection: 'row', justifyContent: item.author==='buyer' ? 'flex-end' : 'flex-start' }}>
                   <Text style={[styles.bubbleMeta, item.author==='buyer' && { color: 'rgba(255,255,255,0.8)' }]}>{item.author==='buyer'?'Tú':'Vendedor'} · {new Date(item.at).toLocaleTimeString().slice(0,5)}</Text>
                 </View>
@@ -140,12 +222,22 @@ export default function EscrowFlowScreen() {
             </View>
           )}
           contentContainerStyle={{ paddingHorizontal: 8 }}
+          style={{ maxHeight: chatMaxHeight }}
+          nestedScrollEnabled
         />
         <View style={styles.chatInputRow}>
           <TextInput style={styles.chatInput} placeholder={'Escribe un mensaje...'} placeholderTextColor={'#94a3b8'} value={input} onChangeText={setInput} />
           <Pressable style={styles.chatSend} onPress={onSend}><MaterialIcons name={'send'} size={18} color={'#ffffff'} /></Pressable>
         </View>
-      </View>
+        </View>
+
+        <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+          <Pressable style={styles.btnSupport} onPress={() => { try { (nav as any).navigate?.('SocialChat' as any, { userId: 'support' } as any); } catch {} }}>
+            <MaterialIcons name={'support-agent'} size={18} color={'#0f172a'} />
+            <Text style={{ color: '#0f172a', fontWeight: '800' }}>Contactar Soporte Urgente</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -165,6 +257,8 @@ const styles = StyleSheet.create({
   disputeBox: { padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#fecaca', backgroundColor: '#fef2f2', alignItems: 'center' },
   btnOutline: { height: 40, borderRadius: 8, borderWidth: 1, borderColor: '#ef4444', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 12, marginTop: 8 },
   btnOutlineText: { color: '#b91c1c', fontWeight: '800' },
+  shipRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  shipInput: { flex: 1, height: 40, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', paddingHorizontal: 12, backgroundColor: '#ffffff', color: '#0f172a' },
   bubble: { maxWidth: 320, padding: 10, borderRadius: 12 },
   bubbleSeller: { backgroundColor: '#f3f4f6' },
   bubbleBuyer: { backgroundColor: '#4f46e5' },
@@ -173,6 +267,7 @@ const styles = StyleSheet.create({
   chatInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   chatInput: { flex: 1, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', paddingHorizontal: 12, backgroundColor: '#ffffff', color: '#0f172a' },
   chatSend: { marginLeft: 8, width: 40, height: 40, borderRadius: 20, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' },
+  btnSupport: { height: 48, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
 });
 
 

@@ -43,6 +43,7 @@ export default function HomeScreen() {
               <MaterialIcons name="notifications" size={22} color={TEXT_DARK} />
             </Pressable>
             <View style={styles.badge} />
+            {/* acceso a pagos movido al SideDrawer */}
           </View>
         </View>
 

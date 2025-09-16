@@ -5,13 +5,16 @@ export type UserRole = 'consumer' | 'business' | 'influencer' | 'admin';
 type UserContextType = {
   role: UserRole;
   setRole: (r: UserRole) => void;
+  userId: string;
+  setUserId: (id: string) => void;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>('consumer');
-  const value = useMemo(() => ({ role, setRole }), [role]);
+  const [userId, setUserId] = useState<string>('u_me');
+  const value = useMemo(() => ({ role, setRole, userId, setUserId }), [role, userId]);
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 

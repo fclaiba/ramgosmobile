@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TextInput, Pressable, FlatList, ImageBackground, Modal, Share, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TextInput, Pressable, FlatList, ImageBackground, Modal, Share, ScrollView, useWindowDimensions } from 'react-native';
 import Slider from '@react-native-community/slider';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +19,7 @@ type ShippingKey = 'all' | 'free' | 'paid';
 
 export default function MarketplaceScreen() {
   const nav = useNavigation<any>();
+  const { width, height } = useWindowDimensions();
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [condition, setCondition] = useState<ConditionKey>('all');
@@ -77,6 +78,11 @@ export default function MarketplaceScreen() {
   }, []);
 
   const products = useMemo(() => getProducts(), []);
+
+  // Responsive layout metrics
+  const horizontalPadding = width < 380 ? 12 : width < 768 ? 16 : 24;
+  const containerMaxWidth = Math.min(1200, width - horizontalPadding * 2);
+  const numColumns = width >= 1200 ? 4 : width >= 900 ? 3 : 2;
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
@@ -218,9 +224,12 @@ export default function MarketplaceScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { paddingHorizontal: horizontalPadding }]}>
         <Text style={styles.headerTitle}>Marketplace</Text>
-        <Pressable style={styles.iconBtn} accessibilityLabel="Configuración de búsqueda" onPress={() => setMod('config')}>
+        <Pressable style={styles.iconBtn} accessibilityLabel="Ir a registro de ventas/compras" onPress={() => nav.navigate('EscrowRegistry' as any)}>
+          <MaterialIcons name={'receipt'} size={22} color={'#475569'} />
+        </Pressable>
+        <Pressable style={[styles.iconBtn, { marginLeft: 8 }]} accessibilityLabel="Configuración de búsqueda" onPress={() => setMod('config')}>
           <MaterialIcons name={'tune'} size={22} color={'#475569'} />
         </Pressable>
         <Pressable style={[styles.iconBtn, { marginLeft: 8 }]} accessibilityLabel="Publicar producto" onPress={() => nav.navigate('PublishProduct')}>
@@ -242,7 +251,7 @@ export default function MarketplaceScreen() {
         </View>
       )}
 
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+      <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: 8 }}>
         <View style={styles.searchWrap}>
           <MaterialIcons name={'search'} size={18} color={'#94a3b8'} style={{ marginLeft: 12 }} />
           <TextInput
@@ -260,9 +269,26 @@ export default function MarketplaceScreen() {
         </View>
       </View>
 
-      {/* Barra de distancia del mapa (debajo del search) solo visible en modo mapa, fuera del mapa */}
+      
+
+      {/* Menú de filtros se abre con el botón de configuración del header */}
+
+      {/* Controles de vista */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: horizontalPadding, paddingBottom: 8, gap: 8 }}>
+        <Pressable style={styles.iconBtn} onPress={() => setView('grid')} accessibilityLabel="Vista grid">
+          <MaterialIcons name={'grid-view' as any} size={20} color={'#475569'} />
+        </Pressable>
+        <Pressable style={styles.iconBtn} onPress={() => setView('list')} accessibilityLabel="Vista lista">
+          <MaterialIcons name={'view-list' as any} size={20} color={'#475569'} />
+        </Pressable>
+        <Pressable style={[styles.iconBtn, view === 'map' && { backgroundColor: '#e0f2fe' }]} onPress={() => setView(view === 'map' ? 'grid' : 'map')} accessibilityLabel="Mapa">
+          <MaterialIcons name={'map'} size={20} color={view === 'map' ? PRIMARY : '#475569'} />
+        </Pressable>
+      </View>
+
+      {/* Barra de distancia (debajo de las opciones de vista) */}
       {view === 'map' && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <View style={{ paddingHorizontal: horizontalPadding, paddingBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ flex: 1 }}>
               <Slider minimumValue={1} maximumValue={50} step={1} value={radiusKm} onValueChange={setRadiusKm as any} minimumTrackTintColor={PRIMARY} maximumTrackTintColor={'#e5e7eb'} thumbTintColor={PRIMARY} />
@@ -282,21 +308,6 @@ export default function MarketplaceScreen() {
         </View>
       )}
 
-      {/* Menú de filtros se abre con el botón de configuración del header */}
-
-      {/* Controles de vista */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: 16, paddingBottom: 8, gap: 8 }}>
-        <Pressable style={styles.iconBtn} onPress={() => setView('grid')} accessibilityLabel="Vista grid">
-          <MaterialIcons name={'grid-view' as any} size={20} color={'#475569'} />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={() => setView('list')} accessibilityLabel="Vista lista">
-          <MaterialIcons name={'view-list' as any} size={20} color={'#475569'} />
-        </Pressable>
-        <Pressable style={[styles.iconBtn, view === 'map' && { backgroundColor: '#e0f2fe' }]} onPress={() => setView(view === 'map' ? 'grid' : 'map')} accessibilityLabel="Mapa">
-          <MaterialIcons name={'map'} size={20} color={view === 'map' ? PRIMARY : '#475569'} />
-        </Pressable>
-      </View>
-
       {view === 'map' ? (
         <MapRadius
           items={filtered.map((p) => ({ id: p.id, title: p.title, coordinate: p.coordinate as any }))}
@@ -310,9 +321,9 @@ export default function MarketplaceScreen() {
         <FlatList
           data={displayList}
           keyExtractor={(i) => i.id}
-          numColumns={2}
-          columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-          contentContainerStyle={{ paddingBottom: 96, gap: 12 }}
+          numColumns={numColumns}
+          columnWrapperStyle={{ gap: 12, paddingHorizontal: 0 }}
+          contentContainerStyle={{ paddingBottom: 96, gap: 12, width: containerMaxWidth, alignSelf: 'center', paddingHorizontal: horizontalPadding }}
           renderItem={renderCard}
         />
       )}

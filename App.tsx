@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { navigationRef } from './navigation/navigation';
@@ -29,6 +29,12 @@ import SocialSearchScreen from './screens/SocialSearchScreen';
 import SocialHashtagScreen from './screens/SocialHashtagScreen';
 import PostDetailScreen from './screens/PostDetailScreen';
 import StoriesScreen from './screens/StoriesScreen';
+import { initEscrowStore } from './services/escrow';
+import EscrowRegistryScreen from './screens/EscrowRegistryScreen';
+import TransactionsHistoryScreen from './screens/TransactionsHistoryScreen';
+import MyCouponsScreen from './screens/MyCouponsScreen';
+import MyEventsScreen from './screens/MyEventsScreen';
+import MyMarketScreen from './screens/MyMarketScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -61,6 +67,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const navRef = navigationRef;
+  useEffect(() => { initEscrowStore(); }, []);
   return (
     <UserProvider>
       <NavigationContainer ref={navRef}>
@@ -98,6 +105,11 @@ export default function App() {
           <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="PublishProduct" component={PublishProductScreen} options={{ headerShown: false }} />
           <Stack.Screen name="EscrowFlow" component={EscrowFlowScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="EscrowRegistry" component={EscrowRegistryScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="TransactionsHistory" component={TransactionsHistoryScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="MyCoupons" component={MyCouponsScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="MyEvents" component={MyEventsScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="MyMarket" component={MyMarketScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SocialProfile" component={SocialProfileScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SocialChat" component={SocialChatScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SocialNotifications" component={SocialNotificationsScreen} options={{ headerShown: false }} />

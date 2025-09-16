@@ -46,20 +46,14 @@ export default function SideDrawer({ open, onClose }: Props) {
         {(
           [
             { icon: 'home', label: 'Home', action: () => navigate('Main') },
-            { icon: 'sell', label: 'Bonos', action: () => {} },
-            { icon: 'history', label: 'Historial', action: () => navigate('History') },
+            { icon: 'sell', label: 'Bonos', action: () => navigate('MyCoupons') },
+            { icon: 'event', label: 'Eventos', action: () => navigate('MyEvents') },
+            { icon: 'storefront', label: 'Marketplace', action: () => navigate('MyMarket') },
+            { icon: 'receipt', label: 'Transacciones', action: () => navigate('TransactionsHistory') },
             { icon: 'person', label: 'Perfil', action: () => navigate('Profile') },
-            // Dashboard por rol
-            role === 'influencer'
-              ? { icon: 'trending-up', label: 'Dashboard', action: () => navigate('Influencer') }
-              : role === 'business'
-              ? { icon: 'storefront', label: 'Dashboard', action: () => navigate('Negocio') }
-              : role === 'admin'
-              ? { icon: 'admin-panel-settings', label: 'Dashboard', action: () => navigate('Admin') }
-              : null,
             { icon: 'settings', label: 'Configuración', action: () => {} },
             { icon: 'logout', label: 'Cerrar sesión', action: () => {} },
-          ].filter(Boolean) as Array<{ icon: string; label: string; action: () => void }>
+          ] as Array<{ icon: string; label: string; action: () => void }>
         ).map((item) => (
           <Pressable
             key={item.label}
@@ -95,6 +89,19 @@ export default function SideDrawer({ open, onClose }: Props) {
                 <Text style={[styles.rolePillText, role === (r.value as any) && styles.rolePillTextActive]}>
                   {r.label}
                 </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={[styles.devTitle, { marginTop: 8 }]}>Usuario (dev)</Text>
+          <View style={styles.roleRow}>
+            {[
+              { label: 'Yo', value: 'u_me' },
+              { label: 'Sofía', value: 'u1' },
+              { label: 'Max', value: 'u2' },
+              { label: 'Luna', value: 'u3' },
+            ].map((u) => (
+              <Pressable key={u.value} style={styles.rolePill} onPress={() => { /* consumer of useUser can set against provider if needed */ }}>
+                <Text style={styles.rolePillText}>{u.label}</Text>
               </Pressable>
             ))}
           </View>
