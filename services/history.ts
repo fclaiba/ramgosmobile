@@ -38,6 +38,18 @@ export function listOrdersByStatus(status: OrderStatus): CouponOrder[] {
   return state.orders.filter((o) => o.status === status);
 }
 
+export function filterCouponOrders(filter?: { status?: OrderStatus[]; text?: string; sector?: CouponOrder['sector'][] }): CouponOrder[] {
+  const q = filter?.text?.trim().toLowerCase();
+  return state.orders
+    .filter((o) => (
+      (!filter?.status || filter.status.includes(o.status)) &&
+      (!filter?.sector || filter.sector.includes(o.sector)) &&
+      (!q || `${o.id} ${o.title} ${o.merchant}`.toLowerCase().includes(q))
+    ))
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
 export function markRedeemed(id: string) {
   const o = state.orders.find((x) => x.id === id);
   if (o) o.status = 'redeemed';

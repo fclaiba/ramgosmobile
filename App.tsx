@@ -35,6 +35,8 @@ import TransactionsHistoryScreen from './screens/TransactionsHistoryScreen';
 import MyCouponsScreen from './screens/MyCouponsScreen';
 import MyEventsScreen from './screens/MyEventsScreen';
 import MyMarketScreen from './screens/MyMarketScreen';
+import EventDetailScreen from './screens/EventDetailScreen';
+import EventCheckoutScreen from './screens/EventCheckoutScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -61,6 +63,8 @@ export type RootStackParamList = {
   SocialHashtag: { tag: string };
   PostDetail: { postId: string };
   Stories: { userId?: string };
+  EventDetail: { id: string };
+  EventCheckout: { id: string; qty?: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -117,6 +121,8 @@ export default function App() {
           <Stack.Screen name="SocialHashtag" component={SocialHashtagScreen} options={{ headerShown: false }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Stories" component={StoriesScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="EventCheckout" component={EventCheckoutScreen} options={{ headerShown: false }} />
           <Stack.Screen
             name="VerifyEmail"
             component={VerifyEmailScreen}

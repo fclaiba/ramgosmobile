@@ -48,6 +48,52 @@ export default function InfluencerDashboard() {
           </Pressable>
         </View>
 
+        {/* Dashboards Interactivos */}
+        <Text style={styles.sectionTitle}>Dashboards Interactivos</Text>
+        <View style={{ flexDirection:'row', gap:8 }}>
+          <Pressable onPress={()=>setRange('7d')} style={[styles.switchBtn, range==='7d'&&styles.switchActive]}><Text style={range==='7d'?styles.switchActiveText:styles.switchText}>7d</Text></Pressable>
+          <Pressable onPress={()=>setRange('30d')} style={[styles.switchBtn, range==='30d'&&styles.switchActive]}><Text style={range==='30d'?styles.switchActiveText:styles.switchText}>30d</Text></Pressable>
+        </View>
+        <View style={[styles.statCardLg, { marginTop: 8 }]}>
+          <Text style={styles.subtleLabel}>Embudo de Conversión</Text>
+          <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop: 8 }}>
+            {[{k:'Visitantes',v:'10k'},{k:'Registros',v:'7.5k'},{k:'Perfil Completo',v:'5k'},{k:'Activos',v:'2.5k'}].map((m,i)=> (
+              <View key={i} style={{ alignItems:'center', flex:1 }}>
+                <Text style={{ color:'#64748b' }}>{m.k}</Text>
+                <Text style={{ color:'#111827', fontWeight:'900' }}>{m.v}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.statCardLg, { marginTop: 8 }]}>
+          <Text style={styles.subtleLabel}>Mapa de Calor de Actividad</Text>
+          <View style={{ marginTop: 8, gap: 6 }}>
+            {[0,1,2].map((row)=> (
+              <View key={row} style={{ flexDirection:'row', gap:6 }}>
+                {Array.from({ length:7 }).map((_,col)=>{
+                  const intensity = ((row*7+col+2)%7)/6; const color = `rgba(59,130,246,${0.2+0.8*intensity})`;
+                  return <View key={col} style={{ width:22, height:22, borderRadius:4, backgroundColor: color }} />;
+                })}
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.statCardLg, { marginTop: 8 }]}>
+          <Text style={styles.subtleLabel}>Serie Temporal de Transacciones</Text>
+          <View style={{ height: 120, borderWidth:1, borderColor:'#e5e7eb', borderRadius:8, alignItems:'center', justifyContent:'center', marginTop:6 }}>
+            <Text style={{ color:'#94a3b8' }}>Gráfico (placeholder)</Text>
+          </View>
+        </View>
+
+        <View style={[styles.statCardLg, { marginTop: 8, marginBottom: 8 }]}>
+          <Text style={styles.subtleLabel}>Distribución Geográfica de Usuarios</Text>
+          <View style={{ height: 120, borderWidth:1, borderColor:'#e5e7eb', borderRadius:8, alignItems:'center', justifyContent:'center', marginTop:6 }}>
+            <Text style={{ color:'#94a3b8' }}>Mapa (placeholder)</Text>
+          </View>
+        </View>
+
         {/* Perfil */}
         <View style={styles.profileRow}>
           <View style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]} />
@@ -91,6 +137,29 @@ export default function InfluencerDashboard() {
             </View>
             <Text style={styles.toolText}>Promociones</Text>
           </Pressable>
+        </View>
+
+        {/* Mini herramienta de banners + enlaces UTM */}
+        <View style={{ backgroundColor:'#f0f2f4', borderRadius: 12, padding: 12, marginTop: 8 }}>
+          <Text style={{ fontWeight:'800', color:'#111418', fontSize:16 }}>Editor rápido de banners</Text>
+          <View style={{ height: 120, borderRadius: 10, backgroundColor:'#111827', alignItems:'center', justifyContent:'center', marginTop: 8 }}>
+            <Text style={{ color:'#ffffff', fontWeight:'900' }}>Tu promoción</Text>
+          </View>
+          <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop: 8 }}>
+            <Pressable style={{ borderWidth:1, borderColor:'#d1d5db', borderRadius:8, paddingHorizontal:12, paddingVertical:8, backgroundColor:'#ffffff' }}>
+              <Text style={{ color:'#111418', fontWeight:'800' }}>Descargar</Text>
+            </Pressable>
+            <Pressable style={{ backgroundColor:'#1173d4', borderRadius:8, paddingHorizontal:12, paddingVertical:8 }}>
+              <Text style={{ color:'#ffffff', fontWeight:'800' }}>Probar</Text>
+            </Pressable>
+          </View>
+          <Text style={{ marginTop:12, color:'#111418', fontWeight:'800' }}>Enlace UTM</Text>
+          <View style={{ flexDirection:'row', alignItems:'center', gap:8, marginTop:6 }}>
+            <View style={{ flex:1, backgroundColor:'#ffffff', borderRadius:8, paddingHorizontal:12, paddingVertical:8 }}>
+              <Text numberOfLines={1} style={{ color:'#111418' }}>https://miapp.example/promo?utm_source=influencer</Text>
+            </View>
+            <Pressable style={{ backgroundColor:'#e5e7eb', borderRadius:8, padding:8 }} onPress={shareLink}><MaterialIcons name={'share'} size={18} color={'#111418'} /></Pressable>
+          </View>
         </View>
 
         {/* Crecimiento seguidores (mock) */}

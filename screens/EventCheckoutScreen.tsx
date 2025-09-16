@@ -1,19 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, ActivityIndicator } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { getCouponById } from '../services/coupons';
-import { addPurchase } from '../services/history';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { EventItem, getEventById, addEventOrder } from '../services/events';
 import { validateReferralCode, ReferralInfo } from '../services/referrals';
+import { useUser } from '../context/UserContext';
+import QRCode from 'react-native-qrcode-svg';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const PRIMARY = '#1173d4';
 
-type Props = { route: { params: { id: string; qty?: number } }; navigation: any };
+type RootParam = { EventCheckout: { id: string; qty?: number } };
 
-export default function CheckoutScreen({ route, navigation }: Props) {
-  const { id, qty: initialQty = 1 } = route.params ?? {};
-  const coupon = getCouponById(id);
+export default function EventCheckoutScreen() {
+  const route = useRoute<RouteProp<RootParam, 'EventCheckout'>>();
+  const navigation = useNavigation<any>();
+  const { userId } = useUser();
+  const { id, qty: initialQty = 1 } = route.params ?? ({} as any);
+  const event: EventItem | undefined = useMemo(() => getEventById(id), [id]);
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [qty, setQty] = useState(Math.max(1, Math.min(initialQty, coupon?.remaining ?? 1)));
+  const [qty, setQty] = useState(Math.max(1, initialQty));
   const [card, setCard] = useState('');
   const [exp, setExp] = useState('');
   const [cvc, setCvc] = useState('');
@@ -23,16 +30,18 @@ export default function CheckoutScreen({ route, navigation }: Props) {
   const [refCode, setRefCode] = useState('');
   const [refLoading, setRefLoading] = useState(false);
   const [refApplied, setRefApplied] = useState<ReferralInfo | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const qrRef = useRef<QRCode | null>(null);
 
-  const totalBefore = useMemo(() => (coupon ? coupon.price * qty : 0), [coupon, qty]);
+  const totalBefore = useMemo(() => (event ? (event.price > 0 ? event.price * qty : 0) : 0), [event, qty]);
   const discount = useMemo(() => (refApplied ? (totalBefore * refApplied.discountPct) / 100 : 0), [totalBefore, refApplied]);
   const total = useMemo(() => Math.max(0, totalBefore - discount), [totalBefore, discount]);
 
-  if (!coupon) {
+  if (!event) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={{ padding: 16 }}>
-          <Text style={styles.title}>Bono no encontrado</Text>
+          <Text style={styles.title}>Evento no encontrado</Text>
           <Pressable style={[styles.ctaSecondary, { marginTop: 12 }]} onPress={() => navigation.goBack()}>
             <MaterialIcons name={'arrow-back'} size={18} color={'#111418'} />
             <Text style={[styles.meta, { fontWeight: '800' }]}>Volver</Text>
@@ -43,35 +52,24 @@ export default function CheckoutScreen({ route, navigation }: Props) {
   }
 
   const canContinueStep1 = qty >= 1;
-  const canContinueStep2 = accept && /\d{12,19}/.test(card.replace(/\s+/g, '')) && /^\d{2}\/?\d{2}$/.test(exp) && /^\d{3,4}$/.test(cvc);
+  const canContinueStep2 = (total === 0) || (accept && /\d{12,19}/.test(card.replace(/\s+/g, '')) && /^\d{2}\/?\d{2}$/.test(exp) && /^\d{3,4}$/.test(cvc));
 
   const onNext = () => {
     if (step === 1 && canContinueStep1) setStep(2);
     else if (step === 2 && canContinueStep2) {
       setProcessing(true);
       setPaymentError(null);
-      // Simulación de procesamiento de pago
       setTimeout(() => {
         setProcessing(false);
-        // Simular éxito 85% de las veces
-        if (Math.random() < 0.85) {
+        if (Math.random() < 0.9) {
           setStep(3);
-          // Registrar compra en historial
-          const orderId = `ord_${Date.now()}`;
-          addPurchase({
-            id: orderId,
-            couponId: coupon.id,
-            title: coupon.title,
-            merchant: coupon.sector === 'gastronomia' ? 'Restaurante' : coupon.sector === 'bienestar' ? 'Spa' : 'Comercio',
-            sector: coupon.sector,
-            status: 'active',
-            validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-            createdAt: new Date().toISOString(),
-            qrCodeUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCya015-ypKkmx-7wJKdZ9X0xwsyXTt7p9Qwrifl0VuIh-Xg-0jITpm_nM-SAhyxLfWwOGoyhdFDg9SYppovfMlfZdAhzMaZ1qzcHtfL9GrsWCyeaHpAjYbRCyhHBoG5xvXDKnk87AGvfocdTeEt7zgQbnWF17XX5NGsWhOK5I13gx2M5X0QYhwWwJp7XcWi1Kmd4MHSBVOQL-kk-aHvnu5heHkxpORyWZ-vzeic9J2sp9QeNwlvF0nppUts5wC_xIxgvvRmSa4hfva',
-          });
+          const oid = `EVT-${Math.floor(1000 + Math.random() * 9000)}`;
+          setOrderId(oid);
+          addEventOrder({ id: oid, eventId: event.id, title: event.title, status: 'active', date: event.date, amount: total, userId });
+        } else {
+          setPaymentError('No pudimos procesar tu pago. Verifica los datos e intenta nuevamente.');
         }
-        else setPaymentError('No pudimos procesar tu pago. Verifica los datos e intenta nuevamente.');
-      }, 1800);
+      }, 1500);
     }
   };
 
@@ -87,37 +85,40 @@ export default function CheckoutScreen({ route, navigation }: Props) {
         <Pressable style={styles.iconBtn} onPress={onBack} accessibilityLabel="Atrás">
           <MaterialIcons name={'arrow-back'} size={22} color={'#111418'} />
         </Pressable>
-        <Text style={styles.headerTitle}>Checkout de Bono</Text>
+        <Text style={styles.headerTitle}>Checkout de Evento</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        {/* Stepper */}
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={[styles.stepCircle, { backgroundColor: PRIMARY }]}>
-              <MaterialIcons name={'shopping-cart'} size={18} color={'#ffffff'} />
+              <MaterialIcons name={'confirmation-number'} size={18} color={'#ffffff'} />
             </View>
             <View style={[styles.stepLine, { backgroundColor: step >= 2 ? PRIMARY : '#e2e8f0' }]} />
             <View style={[styles.stepCircle, { backgroundColor: step >= 2 ? PRIMARY : '#e2e8f0' }]}>
               <MaterialIcons name={'credit-card'} size={18} color={step >= 2 ? '#ffffff' : '#64748b'} />
             </View>
             <View style={[styles.stepLine, { backgroundColor: step >= 3 ? PRIMARY : '#e2e8f0' }]} />
-            <View style={[styles.stepCircle, { backgroundColor: step >= 3 ? PRIMARY : '#e2e8f0' }] }>
+            <View style={[styles.stepCircle, { backgroundColor: step >= 3 ? PRIMARY : '#e2e8f0' }]}>
               <MaterialIcons name={'check-circle'} size={18} color={step >= 3 ? '#ffffff' : '#64748b'} />
             </View>
           </View>
         </View>
 
-        {/* Step 1: Resumen */}
         {(step === 1 || step === 2) && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Resumen de Compra</Text>
+            <Text style={styles.cardTitle}>Resumen del Evento</Text>
             <View style={styles.sep} />
 
             <View style={styles.rowBetween}>
-              <Text style={styles.meta}>Bono:</Text>
-              <Text style={styles.value}>{coupon.title}</Text>
+              <Text style={styles.meta}>Evento:</Text>
+              <Text style={styles.value}>{event.title}</Text>
+            </View>
+
+            <View style={[styles.rowBetween, { marginTop: 10 }]}>
+              <Text style={styles.meta}>Fecha:</Text>
+              <Text style={styles.value}>{new Date(event.date).toLocaleString()}</Text>
             </View>
 
             <View style={[styles.rowBetween, { marginTop: 10 }]}>
@@ -125,19 +126,20 @@ export default function CheckoutScreen({ route, navigation }: Props) {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Pressable style={styles.qtyBtn} onPress={() => setQty(q => Math.max(1, q - 1))}><Text style={styles.qtyBtnText}>-</Text></Pressable>
                 <Text style={styles.value}>{qty}</Text>
-                <Pressable style={[styles.qtyBtn, { backgroundColor: PRIMARY, borderColor: PRIMARY }]} onPress={() => setQty(q => Math.min(q + 1, coupon.remaining))}><Text style={[styles.qtyBtnText, { color: '#ffffff' }]}>+</Text></Pressable>
+                <Pressable style={[styles.qtyBtn, { backgroundColor: PRIMARY, borderColor: PRIMARY }]} onPress={() => setQty(q => q + 1)}><Text style={[styles.qtyBtnText, { color: '#ffffff' }]}>+</Text></Pressable>
               </View>
             </View>
 
             <View style={[styles.rowBetween, { marginTop: 10 }]}>
-              <Text style={styles.meta}>Precio:</Text>
-              <Text style={styles.value}>${coupon.price.toFixed(2)}</Text>
+              <Text style={styles.meta}>Precio unitario:</Text>
+              <Text style={styles.value}>{event.price > 0 ? `$${event.price.toFixed(2)}` : 'Gratis'}</Text>
             </View>
 
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total:</Text>
               <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
             </View>
+
             <View style={{ height: 8 }} />
             <View style={styles.refRow}>
               <TextInput
@@ -177,8 +179,7 @@ export default function CheckoutScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        {/* Step 2: Pago */}
-        {step === 2 && (
+        {step === 2 && total > 0 && (
           <View style={[styles.card, { marginTop: 16 }] }>
             <Text style={styles.cardTitle}>Información de Pago</Text>
             <Text style={styles.helper}>Pago seguro impulsado por Stripe.</Text>
@@ -237,23 +238,68 @@ export default function CheckoutScreen({ route, navigation }: Props) {
           </View>
         )}
 
-        {/* Step 3: Éxito */}
         {step === 3 && (
-          <View style={[styles.card, { alignItems: 'center', paddingVertical: 24 }] }>
-            <View style={styles.successIconWrap}>
-              <MaterialIcons name={'check'} size={40} color={'#22c55e'} />
+          <View style={[styles.card, { paddingVertical: 16 }] }>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.helper}>Orden de Compra</Text>
+              <Text style={styles.orderId}>#{orderId || '—'}</Text>
             </View>
-            <Text style={[styles.title, { marginTop: 12 }]}>¡Pago Exitoso!</Text>
-            <Text style={styles.helper}>Tu bono ha sido generado. Escanea el código QR para usarlo.</Text>
-            <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCya015-ypKkmx-7wJKdZ9X0xwsyXTt7p9Qwrifl0VuIh-Xg-0jITpm_nM-SAhyxLfWwOGoyhdFDg9SYppovfMlfZdAhzMaZ1qzcHtfL9GrsWCyeaHpAjYbRCyhHBoG5xvXDKnk87AGvfocdTeEt7zgQbnWF17XX5NGsWhOK5I13gx2M5X0QYhwWwJp7XcWi1Kmd4MHSBVOQL-kk-aHvnu5heHkxpORyWZ-vzeic9J2sp9QeNwlvF0nppUts5wC_xIxgvvRmSa4hfva' }}
-              style={{ width: 200, height: 200, marginTop: 16, borderRadius: 12 }}
-            />
+            <View style={{ height: 12 }} />
+            <View style={{ alignItems: 'center' }}>
+              <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 16 }}>
+                <QRCode
+                  value={JSON.stringify({ t: 'event_ticket', orderId: orderId, eventId: event.id, userId })}
+                  size={220}
+                  backgroundColor={'#ffffff'}
+                  color={'#111827'}
+                  getRef={(c: any) => (qrRef.current = c)}
+                />
+              </View>
+            </View>
+            <View style={{ height: 16 }} />
+            <Row k={'Fecha del evento'} v={new Date(event.date).toLocaleDateString()} />
+            <View style={styles.sep} />
+            <Row k={'Fecha de compra'} v={new Date().toLocaleString()} />
+            <View style={styles.sep} />
+            <Row k={'Tiempo de validez restante'} v={<Text style={{ color: '#ef4444', fontWeight: '800' }}>{Math.max(0, Math.ceil((event.date - Date.now()) / (24*3600*1000)))} días</Text>} />
+            <View style={styles.sep} />
+            <Row k={'Precio total'} v={`$${total.toFixed(2)}`} boldValue />
+
+            <View style={{ height: 12 }} />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable style={[styles.ctaPrimary, { flex: 1 }]} onPress={async () => {
+                try {
+                  const dataUrl: string = await new Promise((resolve, reject) => qrRef.current?.toDataURL((d: string) => resolve(d)) ?? reject('qr'));
+                  const base64 = dataUrl.replace(/^data:image\/(png|svg\+xml);base64,/, '');
+                  const fileUri = `${FileSystem.cacheDirectory}qr-${orderId}.png`;
+                  await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+                  await Sharing.shareAsync(fileUri, { UTI: 'public.png', mimeType: 'image/png' });
+                } catch (e) {
+                  Alert.alert('Error', 'No se pudo compartir el QR');
+                }
+              }}>
+                <MaterialIcons name={'qr-code-scanner'} size={18} color={'#ffffff'} />
+                <Text style={styles.ctaPrimaryText}>Descargar QR</Text>
+              </Pressable>
+              <Pressable style={[styles.ctaSecondary, { flex: 1 }]} onPress={async () => {
+                try {
+                  const dataUrl: string = await new Promise((resolve, reject) => qrRef.current?.toDataURL((d: string) => resolve(d)) ?? reject('qr'));
+                  const base64 = dataUrl.replace(/^data:image\/(png|svg\+xml);base64,/, '');
+                  const fileUri = `${FileSystem.cacheDirectory}qr-${orderId}.png`;
+                  await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+                  await Sharing.shareAsync(fileUri, { dialogTitle: 'Compartir QR' });
+                } catch (e) {
+                  Alert.alert('Error', 'No se pudo compartir el QR');
+                }
+              }}>
+                <MaterialIcons name={'share'} size={18} color={'#111418'} />
+                <Text style={[styles.meta, { fontWeight: '900' }]}>Compartir QR</Text>
+              </Pressable>
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <Pressable style={styles.ctaSecondary} onPress={onBack}>
           <MaterialIcons name={'arrow-back'} size={18} color={'#111418'} />
@@ -261,7 +307,7 @@ export default function CheckoutScreen({ route, navigation }: Props) {
         </Pressable>
         {step !== 3 && (
           <Pressable style={[styles.ctaPrimary, (step === 1 && !canContinueStep1) || (step === 2 && !canContinueStep2) ? styles.ctaDisabled : undefined]} disabled={(step === 1 && !canContinueStep1) || (step === 2 && !canContinueStep2)} onPress={onNext}>
-            <Text style={styles.ctaPrimaryText}>{step === 1 ? 'Siguiente' : 'Pagar'}</Text>
+            <Text style={styles.ctaPrimaryText}>{step === 1 ? 'Siguiente' : total === 0 ? 'Confirmar' : 'Pagar'}</Text>
             <MaterialIcons name={'arrow-forward'} size={18} color={'#ffffff'} />
           </Pressable>
         )}
@@ -319,6 +365,7 @@ const styles = StyleSheet.create({
   processing: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
   spinner: { height: 56, width: 56, borderRadius: 28, borderWidth: 4, borderColor: PRIMARY, borderTopColor: 'transparent' },
   successIconWrap: { height: 96, width: 96, borderRadius: 48, borderWidth: 6, borderColor: 'rgba(34,197,94,0.3)', alignItems: 'center', justifyContent: 'center' },
+  orderId: { fontSize: 28, fontWeight: '900', color: '#111827' },
   refRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   refInput: { flex: 1, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#ffffff', color: '#0f172a' },
   refApplyBtn: { backgroundColor: PRIMARY, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
@@ -327,5 +374,18 @@ const styles = StyleSheet.create({
   refSummary: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#ecfdf5', padding: 8, borderRadius: 8 },
   refSummaryText: { color: '#065f46', fontWeight: '700' },
 });
+
+function Row({ k, v, boldValue }: { k: string; v: any; boldValue?: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+      <Text style={{ color: '#64748b' }}>{k}</Text>
+      {typeof v === 'string' || typeof v === 'number' ? (
+        <Text style={{ color: '#111827', fontWeight: boldValue ? '900' as any : '700' as any }}>{String(v)}</Text>
+      ) : (
+        v
+      )}
+    </View>
+  );
+}
 
 

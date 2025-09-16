@@ -43,9 +43,21 @@ export default function SideDrawer({ open, onClose }: Props) {
           <Text style={styles.userName}>Sofia</Text>
           <Text style={styles.userEmail}>sofia@example.com</Text>
         </View>
-        {(
-          [
+        {(() => {
+          const items: Array<{ icon: string; label: string; action: () => void }> = [
             { icon: 'home', label: 'Home', action: () => navigate('Main') },
+          ];
+          // Insert Dashboard below Home for non-consumer roles
+          if (role !== 'consumer') {
+            if (role === 'business') {
+              items.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Negocio') });
+            } else if (role === 'influencer') {
+              items.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Influencer') });
+            } else if (role === 'admin') {
+              items.push({ icon: 'admin-panel-settings', label: 'Dashboard', action: () => navigate('Admin') });
+            }
+          }
+          items.push(
             { icon: 'sell', label: 'Bonos', action: () => navigate('MyCoupons') },
             { icon: 'event', label: 'Eventos', action: () => navigate('MyEvents') },
             { icon: 'storefront', label: 'Marketplace', action: () => navigate('MyMarket') },
@@ -53,8 +65,9 @@ export default function SideDrawer({ open, onClose }: Props) {
             { icon: 'person', label: 'Perfil', action: () => navigate('Profile') },
             { icon: 'settings', label: 'Configuración', action: () => {} },
             { icon: 'logout', label: 'Cerrar sesión', action: () => {} },
-          ] as Array<{ icon: string; label: string; action: () => void }>
-        ).map((item) => (
+          );
+          return items;
+        })().map((item) => (
           <Pressable
             key={item.label}
             style={styles.menuItem}
@@ -82,6 +95,7 @@ export default function SideDrawer({ open, onClose }: Props) {
                 accessibilityLabel={`Cambiar a rol ${r.label}`}
                 style={[styles.rolePill, role === (r.value as any) && styles.rolePillActive]}
                 onPress={() => {
+                  // Solo cambia el rol; no navegamos automáticamente
                   setRole(r.value as any);
                   onClose();
                 }}

@@ -21,6 +21,17 @@ const EVENTS: EventItem[] = [
 export function getEvents(): EventItem[] { return EVENTS; }
 export function getEventById(id: string): EventItem | undefined { return EVENTS.find(e=>e.id===id); }
 
+export function getRatingDistribution(avg: number): { stars: 1|2|3|4|5; percent: number }[] {
+  // Simple distribution model: peak near avg
+  const base = [5,4,3,2,1] as const;
+  const weights = base.map((s) => {
+    const d = Math.abs(avg - s);
+    return Math.max(0, 1.5 - d); // triangular
+  });
+  const sum = weights.reduce((a,b)=>a+b,0) || 1;
+  return base.map((s, i) => ({ stars: s, percent: Math.round((weights[i]/sum)*100) })) as any;
+}
+
 // Tickets / órdenes de eventos
 export type EventOrderStatus = 'active' | 'used' | 'expired' | 'cancelled';
 export type EventOrder = {
@@ -41,6 +52,15 @@ export function listEventOrders(filter?: { status?: EventOrderStatus[]; userId?:
   return arr.filter(o => (
     (!filter?.status || filter.status.includes(o.status)) &&
     (!filter?.userId || o.userId === filter.userId)
+  ));
+}
+
+export function filterEventOrders(filter?: { status?: EventOrderStatus[]; text?: string; userId?: string }): EventOrder[] {
+  const q = filter?.text?.trim().toLowerCase();
+  return EVENT_ORDERS.slice().filter(o => (
+    (!filter?.status || filter.status.includes(o.status)) &&
+    (!filter?.userId || o.userId === filter.userId) &&
+    (!q || `${o.id} ${o.title}`.toLowerCase().includes(q))
   ));
 }
 

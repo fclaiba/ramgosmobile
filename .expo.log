@@ -1,0 +1,9 @@
+
+> mi-app@1.0.0 expo
+> expo start
+
+Starting project at /home/mint/mi-app
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.

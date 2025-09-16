@@ -1,34 +1,135 @@
 import React, { useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, ScrollView, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { filterPayments, listPayments, Payment } from '../services/payments';
-import { listEscrows, EscrowTx } from '../services/escrow';
-import { listOrdersByStatus, CouponOrder, expirePastOrders } from '../services/history';
-import { listEventOrders, EventOrder } from '../services/events';
+import { filterPayments, listPayments } from '../services/payments';
+import { listEscrows } from '../services/escrow';
+import { filterCouponOrders, expirePastOrders, listOrders } from '../services/history';
+import { filterEventOrders, listEventOrders } from '../services/events';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import * as Print from 'expo-print';
 
 export default function TransactionsHistoryScreen({ navigation }: any) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all'|'payments'|'escrows'|'coupons'|'events'>('all');
   expirePastOrders();
 
+  const [statusCoupon, setStatusCoupon] = useState<'all'|'active'|'redeemed'|'expired'>('all');
+  const [statusEvent, setStatusEvent] = useState<'all'|'active'|'used'|'expired'|'cancelled'>('all');
+  const [sortAmount, setSortAmount] = useState<'none'|'asc'|'desc'>('none');
+  const [sectorFilter, setSectorFilter] = useState<'all'|'gastronomia'|'aventura'|'bienestar'|'cultura'|'otros'>('all');
   const payments = useMemo(() => filterPayments({ text: query }), [query]);
   const escrowsActive = useMemo(() => listEscrows({}), []);
-  const couponsActive = useMemo(() => listOrdersByStatus('active'), []);
-  const couponsExpired = useMemo(() => listOrdersByStatus('expired'), []);
-  const eventsOrders = useMemo(() => listEventOrders(), []);
+  const coupons = useMemo(() => filterCouponOrders({ text: query, status: statusCoupon==='all'?undefined:[statusCoupon as any] }), [query, statusCoupon]);
+  const eventsOrders = useMemo(() => filterEventOrders({ text: query, status: statusEvent==='all'?undefined:[statusEvent as any] }), [query, statusEvent]);
 
   const q = query.trim().toLowerCase();
   const match = (s: string) => (q ? s.toLowerCase().includes(q) : true);
+
+  // Resumen mensual (ingresos/gastos) y progreso
+  const monthSummary = useMemo(() => {
+    const now = Date.now();
+    const start = new Date(new Date(now).getFullYear(), new Date(now).getMonth(), 1).getTime();
+    let incomes = 0; let expenses = 0;
+    listPayments().forEach(p => { if (p.createdAt >= start) { if (p.amount >= 0) incomes += p.amount; else expenses += -p.amount; } });
+    const total = incomes + expenses || 1;
+    const pct = Math.min(100, Math.max(0, (incomes / total) * 100));
+    return { incomes, expenses, pct };
+  }, []);
+
+  // Flujo mensual últimos 6 meses
+  const monthlyFlow = useMemo(() => {
+    const now = new Date();
+    const arr: { label: string; income: number; expense: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+      let income = 0; let expense = 0;
+      listPayments().forEach(p => { if (p.createdAt >= start && p.createdAt < end) { if (p.amount >= 0) income += p.amount; else expense += -p.amount; } });
+      arr.push({ label: d.toLocaleString(undefined, { month: 'short' }), income, expense });
+    }
+    const maxVal = Math.max(1, ...arr.map(x => Math.max(x.income, x.expense)));
+    return { bars: arr, maxVal };
+  }, []);
+
+  // Categorías de gasto desde cupones (sector) + pagos negativos sin sector → otros
+  const gastoCategorias = useMemo(() => {
+    const totals: Record<string, number> = { Transporte: 0, Comida: 0, Servicios: 0, Otros: 0 };
+    // Mapear sectores de cupones a categorías
+    listOrders().forEach(o => { if ((o.amount ?? 0) < 0) {
+      const abs = Math.abs(o.amount ?? 0);
+      if (o.sector === 'gastronomia') totals['Comida'] += abs; else if (o.sector === 'cultura') totals['Servicios'] += abs; else totals['Otros'] += abs;
+    }});
+    // Pagos negativos adicionales
+    listPayments().forEach(p => { if (p.amount < 0) totals['Otros'] += Math.abs(p.amount); });
+    const sum = Object.values(totals).reduce((a,b)=>a+b,0) || 1;
+    return Object.entries(totals).map(([name, v]) => ({ name, pct: Math.round((v/sum)*100) }));
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.headerRow}>
         <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}><MaterialIcons name={'arrow-back'} size={22} color={'#0f172a'} /></Pressable>
         <Text style={styles.headerTitle}>Historial de Transacciones</Text>
-        <Pressable style={styles.iconBtn}><MaterialIcons name={'download'} size={22} color={'#0f172a'} /></Pressable>
+        <Pressable style={styles.iconBtn} onPress={async()=>{
+          try {
+            const rows: string[] = [];
+            const add = (a: string[]) => rows.push(a.map((s)=>`"${String(s).replace(/"/g,'""')}"`).join(','));
+            add(['Tipo','ID/Título','Estado','Monto','Fecha']);
+            payments.forEach(p=>add(['Pago',p.id, p.status, p.amount, new Date(p.createdAt).toISOString()]));
+            listEscrows({}).forEach(e=>add(['Escrow', e.id, e.status, '', new Date(e.createdAt).toISOString()]));
+            coupons.forEach(c=>add(['Cupón', c.id, c.status, c.amount ?? '', c.createdAt]));
+            eventsOrders.forEach(e=>add(['Evento', e.id, e.status, e.amount, new Date(e.date).toISOString()]));
+            const csv = rows.join('\n');
+            const uri = FileSystem.cacheDirectory + 'transacciones.csv';
+            await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+            await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Exportar CSV' });
+          } catch (e) { Alert.alert('Error', 'No se pudo exportar CSV'); }
+        }}><MaterialIcons name={'download'} size={22} color={'#0f172a'} /></Pressable>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+        {/* Resumen Mensual */}
+        <View style={styles.card}>
+          <Text style={styles.sectionHeader}>Resumen Mensual</Text>
+          <View style={{ marginTop: 8 }}>
+            <View style={styles.rowBetween}><Text style={styles.muted}>Ingresos</Text><Text style={{ color:'#16a34a', fontWeight:'900' }}>+${monthSummary.incomes.toFixed(2)}</Text></View>
+            <View style={styles.rowBetween}><Text style={styles.muted}>Gastos</Text><Text style={{ color:'#dc2626', fontWeight:'900' }}>-${monthSummary.expenses.toFixed(2)}</Text></View>
+            <View style={{ height: 16 }} />
+            <View style={{ height: 16, borderRadius: 999, backgroundColor: '#e5e7eb', overflow: 'hidden' }}>
+              <View style={{ height: 16, width: `${monthSummary.pct}%`, backgroundColor: '#22c55e' }} />
+            </View>
+          </View>
+        </View>
+
+        {/* Flujo Mensual */}
+        <View style={[styles.card, { marginTop: 12 }]}>
+          <Text style={styles.sectionHeader}>Flujo Mensual</Text>
+          <View style={{ flexDirection:'row', alignItems:'flex-end', gap: 8, height: 120, marginTop: 12 }}>
+            {monthlyFlow.bars.map((m, idx) => (
+              <View key={idx} style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ width: '100%', height: `${Math.round((Math.max(m.income, m.expense)/monthlyFlow.maxVal)*100)}%`, backgroundColor: m.income >= m.expense ? '#22c55e' : '#ef4444' }} />
+                <Text style={{ color:'#6b7280', fontSize: 12, marginTop: 4 }}>{m.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Categorías de gasto */}
+        <View style={[styles.card, { marginTop: 12 }]}>
+          <Text style={styles.sectionHeader}>Categorías de Gasto</Text>
+          <View style={{ marginTop: 8, gap: 12 }}>
+            {gastoCategorias.map(c => (
+              <View key={c.name}>
+                <View style={styles.rowBetween}><Text style={styles.muted}>{c.name}</Text><Text style={{ fontWeight:'800' }}>{c.pct}%</Text></View>
+                <View style={{ height: 8, backgroundColor:'#e5e7eb', borderRadius: 999 }}>
+                  <View style={{ height: 8, width: `${c.pct}%`, borderRadius: 999, backgroundColor: c.name==='Comida'?'#f59e0b':c.name==='Servicios'?'#a855f7':c.name==='Transporte'?'#3b82f6':'#9ca3af' }} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
         <View style={styles.searchWrap}>
           <MaterialIcons name={'search'} size={18} color={'#94a3b8'} />
           <TextInput value={query} onChangeText={setQuery} placeholder={'Buscar por ID o concepto...'} placeholderTextColor={'#94a3b8'} style={styles.searchInput} />
@@ -57,6 +158,17 @@ export default function TransactionsHistoryScreen({ navigation }: any) {
                   </View>
                 </View>
                 <Text style={styles.cardMeta}>{new Date(p.createdAt).toLocaleString()}</Text>
+                <View style={{ flexDirection:'row', justifyContent:'flex-end', gap: 12, marginTop: 8 }}>
+                  <Pressable onPress={async()=>{
+                    try {
+                      const csv = `Tipo,ID,Título,Estado,Monto,Fecha\nPago,${p.id},${p.title},${p.status},${p.amount},${new Date(p.createdAt).toISOString()}`;
+                      const uri = FileSystem.cacheDirectory + `pago-${p.id}.csv`;
+                      await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+                      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Descargar pago' });
+                    } catch { Alert.alert('Error','No se pudo descargar'); }
+                  }}><MaterialIcons name={'download'} size={18} color={'#111827'} /></Pressable>
+                  <Pressable onPress={()=>Alert.alert('Reportar','Se ha reportado la transacción.')}><MaterialIcons name={'report'} size={18} color={'#ef4444'} /></Pressable>
+                </View>
               </View>
             ))}
           </View>
@@ -80,7 +192,14 @@ export default function TransactionsHistoryScreen({ navigation }: any) {
         {(filter==='all' || filter==='coupons') && (
           <View style={{ gap: 12, marginTop: 16 }}>
             <Text style={styles.sectionTitle}>Cupones</Text>
-            {[...couponsActive, ...couponsExpired].filter(c=>match(`${c.id} ${c.title} ${c.merchant}`)).map(c => (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(['all','active','redeemed','expired'] as const).map(s => (
+                <Pressable key={s} onPress={() => setStatusCoupon(s)} style={[styles.filterChip, statusCoupon===s && styles.filterChipActive]}>
+                  <Text style={[styles.filterChipText, statusCoupon===s && styles.filterChipTextActive]}>{s==='all'?'Todas':s}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {coupons.filter(c=>match(`${c.id} ${c.title} ${c.merchant}`)).map(c => (
               <View key={c.id} style={styles.card}>
                 <View style={styles.rowBetween}>
                   <Text style={styles.cardTitle}>{c.title}</Text>
@@ -95,6 +214,13 @@ export default function TransactionsHistoryScreen({ navigation }: any) {
         {(filter==='all' || filter==='events') && (
           <View style={{ gap: 12, marginTop: 16 }}>
             <Text style={styles.sectionTitle}>Eventos</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(['all','active','used','expired','cancelled'] as const).map(s => (
+                <Pressable key={s} onPress={() => setStatusEvent(s)} style={[styles.filterChip, statusEvent===s && styles.filterChipActive]}>
+                  <Text style={[styles.filterChipText, statusEvent===s && styles.filterChipTextActive]}>{s==='all'?'Todas':s}</Text>
+                </Pressable>
+              ))}
+            </View>
             {eventsOrders.filter(e=>match(`${e.id} ${e.title}`)).map(e => (
               <View key={e.id} style={styles.card}>
                 <View style={styles.rowBetween}>
@@ -107,6 +233,17 @@ export default function TransactionsHistoryScreen({ navigation }: any) {
           </View>
         )}
       </ScrollView>
+      <View style={{ position:'absolute', right: 16, bottom: 16, flexDirection: 'row', gap: 12 }}>
+        <Pressable onPress={async()=>{
+          try {
+            const html = `<html><body><h1>Transacciones</h1><p>Generado ${new Date().toLocaleString()}</p></body></html>`;
+            const { uri } = await Print.printToFileAsync({ html });
+            await Sharing.shareAsync(uri, { UTI: 'com.adobe.pdf', mimeType: 'application/pdf', dialogTitle: 'Compartir PDF' });
+          } catch (e) { Alert.alert('Error', 'No se pudo exportar PDF'); }
+        }} style={[styles.fab]}>
+          <MaterialIcons name={'picture-as-pdf'} size={22} color={'#ffffff'} />
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -130,6 +267,7 @@ const styles = StyleSheet.create({
   cardMeta: { color: '#64748b', fontSize: 12, marginTop: 2 },
   statusBadge: { color: '#0f172a', backgroundColor: '#f3f4f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, fontSize: 12, overflow: 'hidden' },
   amount: { fontWeight: '900' },
+  fab: { height: 48, width: 48, borderRadius: 24, backgroundColor: '#1173d4', alignItems: 'center', justifyContent: 'center', elevation: 2 },
 });
 
 

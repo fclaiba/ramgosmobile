@@ -24,7 +24,7 @@ export default function EventsScreen() {
   const [mapApi, setMapApi] = useState<{ centerOnMyLocation: () => void } | null>(null);
 
   const renderCard = ({ item }: { item: EventItem }) => (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => nav.navigate('EventDetail' as any, { id: item.id })} accessibilityRole="button">
       <ImageBackground source={{ uri: item.images[0] }} style={styles.image} imageStyle={{ borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
       <View style={styles.cardBody}>
         <Text style={styles.title}>{item.title}</Text>
@@ -36,7 +36,7 @@ export default function EventsScreen() {
           <Text style={[styles.price, { marginLeft: 'auto' }]}>{item.price>0?`$${item.price}`:'Gratis'}</Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 
   const horizontalPadding = width < 380 ? 12 : width < 768 ? 16 : 24;
