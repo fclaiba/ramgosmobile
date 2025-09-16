@@ -181,10 +181,44 @@ export default function SocialProfileScreen({ route, navigation }: any) {
               </View>
             </View>
           ) : (
-            <View style={styles.post}>
-              {!!item.post.text && <Text style={styles.postText}>{item.post.text.length > 280 ? item.post.text.slice(0,280) + '…' : item.post.text}</Text>}
-              {!!item.post.imageUrl && <Image source={{ uri: item.post.imageUrl }} style={styles.postImage} />}
-              <Text style={styles.time}>{new Date(item.post.createdAt).toLocaleString()}</Text>
+            <View style={styles.tweetContainer}>
+              <View style={styles.tweetHeaderRow}>
+                <Image source={{ uri: item.post.author.avatarUrl || 'https://i.pravatar.cc/100?img=25' }} style={styles.tweetAvatar} />
+                <View style={{ flex:1 }}>
+                  <View style={{ flexDirection:'row', alignItems:'center', flexWrap:'wrap' }}>
+                    <Text style={styles.tweetName}>{item.post.author.name}</Text>
+                    <Text style={styles.tweetHandle}> @{item.post.author.handle || 'usuario'}</Text>
+                    <Text style={styles.tweetDot}> · </Text>
+                    <Text style={styles.tweetTime}>{new Date(item.post.createdAt).toLocaleDateString()}</Text>
+                  </View>
+                </View>
+                <MaterialIcons name={'more-vert'} size={18} color={'#6b7280'} />
+              </View>
+
+              {!!item.post.text && (
+                <Text style={styles.tweetText}>
+                  {item.post.text.length > 280 ? item.post.text.slice(0,280) + '…' : item.post.text}
+                </Text>
+              )}
+              {!!item.post.imageUrl && <Image source={{ uri: item.post.imageUrl }} style={styles.tweetImage} />}
+
+              <View style={styles.tweetActionsRow}>
+                <View style={styles.tweetAction}>
+                  <MaterialIcons name={'chat-bubble-outline'} size={16} color={'#6b7280'} />
+                  <Text style={styles.tweetActionText}>{item.post.comments?.length || 0}</Text>
+                </View>
+                <View style={styles.tweetAction}>
+                  <MaterialIcons name={'cached'} size={16} color={'#6b7280'} />
+                  <Text style={styles.tweetActionText}>0</Text>
+                </View>
+                <View style={styles.tweetAction}>
+                  <MaterialIcons name={'favorite-border'} size={16} color={'#6b7280'} />
+                  <Text style={styles.tweetActionText}>{item.post.likes || 0}</Text>
+                </View>
+                <View style={styles.tweetAction}>
+                  <MaterialIcons name={'share'} size={16} color={'#6b7280'} />
+                </View>
+              </View>
             </View>
           )
         )}
@@ -263,6 +297,19 @@ const styles = StyleSheet.create({
   postText: { color: '#0f172a', marginBottom: 6 },
   postImage: { width: '100%', aspectRatio: 16/9, borderRadius: 8, backgroundColor: '#e5e7eb', marginBottom: 6 },
   time: { color: '#64748b', fontSize: 12 },
+  // Twitter-like post styles
+  tweetContainer: { backgroundColor:'#ffffff', paddingHorizontal:16, paddingTop:12, paddingBottom:8, borderBottomWidth:1, borderColor:'#e5e7eb' },
+  tweetHeaderRow: { flexDirection:'row', alignItems:'center', gap:12, marginBottom:6 },
+  tweetAvatar: { width: 40, height: 40, borderRadius: 999, backgroundColor:'#e5e7eb' },
+  tweetName: { color:'#111827', fontWeight:'800' },
+  tweetHandle: { color:'#6b7280' },
+  tweetDot: { color:'#6b7280' },
+  tweetTime: { color:'#6b7280' },
+  tweetText: { color:'#0f172a', fontSize:15, lineHeight:22, marginLeft:52, marginBottom:8 },
+  tweetImage: { marginLeft:52, borderRadius:12, width:'86%', aspectRatio:16/9, backgroundColor:'#e5e7eb' },
+  tweetActionsRow: { marginLeft:52, flexDirection:'row', justifyContent:'space-between', paddingRight:24, marginTop:8 },
+  tweetAction: { flexDirection:'row', alignItems:'center', gap:6 },
+  tweetActionText: { color:'#6b7280', fontSize:12 },
 });
 
 
