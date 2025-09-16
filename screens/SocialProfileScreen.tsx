@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput, useWindowDimensions } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Image, FlatList, Pressable, Modal, Animated, PanResponder, TextInput, useWindowDimensions, ScrollView } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addComment, follow, getUserById, listUserPosts, Post, toggleLike, toggleRetweet, unfollow } from '../services/social';
 import { getPostById, listCommentsTree, toggleLikeComment } from '../services/social';
@@ -20,6 +20,11 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const events = useMemo(()=> getEvents().slice(0,2), []);
   const postsWithImage = useMemo(()=> posts.filter(p=>!!p.imageUrl), [posts]);
   const images = useMemo(()=> postsWithImage.map(p=>p.imageUrl as string), [postsWithImage]);
+  const highlights = useMemo(() => {
+    const base = images.slice(0, 6);
+    const fill = Array.from({ length: Math.max(0, 6 - base.length) }, (_, i) => `https://images.unsplash.com/photo-15${(i%10)+10}9${(i%9)+10}0${(i%7)+10}?q=80&w=600&auto=format&fit=crop`);
+    return [...base, ...fill].map((uri, i) => ({ id: 'h'+i, title: ['Promo','Locales','Eventos','Backstage','Clientes','Equipo'][i%6], cover: uri }));
+  }, [images]);
   const [view, setView] = useState<'ig'|'tw'|'biz'>('ig');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -188,10 +193,10 @@ export default function SocialProfileScreen({ route, navigation }: any) {
     <SafeAreaView style={styles.safe}>
       <FlatList
         data={(view==='tw'
-          ? ([{ kind:'stats' },{ kind:'actions' },{ kind:'tabs' }, ...posts.map(p=>({ kind:'post', post:p }))]
+          ? ([{ kind:'stats' },{ kind:'actions' },{ kind:'highlights' },{ kind:'tabs' }, ...posts.map(p=>({ kind:'post', post:p }))]
           ) : view==='biz'
-          ? ([{ kind:'stats' },{ kind:'actions' },{ kind:'tabs' },{ kind:'featured' },{ kind:'coupons' },{ kind:'events' },{ kind:'reviews' }]
-          ) : ([{ kind:'stats' },{ kind:'actions' },{ kind:'tabs' },{ kind:'iggrid' }])) as any[]}
+          ? ([{ kind:'stats' },{ kind:'actions' },{ kind:'highlights' },{ kind:'tabs' },{ kind:'featured' },{ kind:'coupons' },{ kind:'events' },{ kind:'reviews' }]
+          ) : ([{ kind:'stats' },{ kind:'actions' },{ kind:'highlights' },{ kind:'tabs' },{ kind:'iggrid' }])) as any[]}
         keyExtractor={(i, idx) => i.kind==='post'?i.post.id:String(idx)}
         contentContainerStyle={{ padding: 16, gap: 12, paddingTop: 0 }}
         ListHeaderComponent={() => (
@@ -246,6 +251,18 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             <View style={{ flexDirection:'row', gap: 12 }}>
               <Pressable style={[styles.ctaPrimary, { flex:1 }]} onPress={() => { follow(user.id); setVersion(v=>v+1); }}><Text style={styles.ctaPrimaryText}>Seguir</Text></Pressable>
               <Pressable style={[styles.ctaSecondary, { flex:1 }]} onPress={() => { unfollow(user.id); setVersion(v=>v+1); }}><Text style={styles.ctaSecondaryText}>Contactar</Text></Pressable>
+            </View>
+          ) : item.kind==='highlights' ? (
+            <View style={{ gap: 8 }}>
+              <Text style={styles.sectionTitle}>Historias destacadas</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 6, gap: 12 }}>
+                {highlights.map(h => (
+                  <View key={h.id} style={{ alignItems:'center' }}>
+                    <Image source={{ uri: h.cover }} style={styles.hlCover} />
+                    <Text style={styles.hlTitle} numberOfLines={1}>{h.title}</Text>
+                  </View>
+                ))}
+              </ScrollView>
             </View>
           ) : item.kind==='iggrid' ? (
             <View>
@@ -488,6 +505,8 @@ const styles = StyleSheet.create({
   cardImage: { width: '100%', height: 112, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
   cardTitle: { color:'#111827', fontWeight:'700', fontSize: 14 },
   cardMeta: { color:'#64748b', fontSize: 12 },
+  hlCover: { width: 68, height: 68, borderRadius: 999, borderWidth: 2, borderColor: '#e5e7eb', backgroundColor: '#e5e7eb' },
+  hlTitle: { marginTop: 6, maxWidth: 72, textAlign: 'center', color: '#374151', fontSize: 12, fontWeight: '700' },
   reviewCard: { flexDirection:'row', alignItems:'flex-start', gap: 12, backgroundColor:'#ffffff', borderWidth:1, borderColor:'#e5e7eb', borderRadius:12, padding:12 },
   reviewAvatar: { width: 40, height: 40, borderRadius: 999 },
   reviewName: { color:'#111827', fontWeight:'800' },
