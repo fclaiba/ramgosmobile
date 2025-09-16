@@ -1,15 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, FlatList, Pressable, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, FlatList, Pressable, ScrollView, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { archive, listNotifications, markAllRead, markRead, NotificationItem } from '../services/notifications';
+import { navigate } from '../navigation/navigation';
 
-type Tab = 'all' | 'payment' | 'follower' | 'system' | 'message';
+type Tab = 'all' | 'payment' | 'follower' | 'system' | 'message' | 'high';
 
 export default function NotificationsScreen() {
   const [tab, setTab] = useState<Tab>('all');
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((t)=>t+1);
-  const items = useMemo(() => listNotifications({ kind: tab==='all' ? 'all' : tab }), [tab, tick]);
+  const items = useMemo(() => listNotifications({ kind: tab==='all' || tab==='high' ? 'all' as any : tab, priority: tab==='high' ? 'high' : 'all' }), [tab, tick]);
 
   const sections = useMemo(() => {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
@@ -36,6 +37,7 @@ export default function NotificationsScreen() {
             { key:'follower', label:'Sociales' },
             { key:'system', label:'Sistema' },
             { key:'message', label:'Mensajes' },
+            { key:'high', label:'Prioridad Alta' },
           ].map((t:any)=> (
             <Pressable key={t.key} onPress={()=>setTab(t.key)} style={[styles.pill, tab===t.key && styles.pillActive]}>
               <Text style={[styles.pillText, tab===t.key && styles.pillTextActive]}>{t.label}</Text>
@@ -76,26 +78,26 @@ function NotificationRow({ n, onOpen, onArchive }: { n: NotificationItem; onOpen
           <View style={{ flexDirection:'row', gap: 8, marginTop: 8 }}>
             {n.kind==='payment' && (
               <>
-                <Pressable onPress={()=>onOpen(n)} style={[styles.btn, styles.btnPrimary]}><Text style={styles.btnPrimaryText}>Ver Factura</Text></Pressable>
+                <Pressable onPress={()=>{ onOpen(n); navigate('TransactionsHistory' as any); }} style={[styles.btn, styles.btnPrimary]}><Text style={styles.btnPrimaryText}>Ver Factura</Text></Pressable>
                 <Pressable onPress={()=>onArchive(n.id)} style={styles.btn}><Text style={styles.btnText}>Archivar</Text></Pressable>
               </>
             )}
             {n.kind==='follower' && (
               <>
-                <Pressable onPress={()=>onOpen(n)} style={[styles.btn, styles.btnPrimary]}><Text style={styles.btnPrimaryText}>Seguir también</Text></Pressable>
-                <Pressable onPress={()=>onOpen(n)} style={styles.btn}><Text style={styles.btnText}>Ver Perfil</Text></Pressable>
+                <Pressable onPress={()=>{ onOpen(n); Alert.alert('Acción','Ahora sigues a este usuario.'); }} style={[styles.btn, styles.btnPrimary]}><Text style={styles.btnPrimaryText}>Seguir también</Text></Pressable>
+                <Pressable onPress={()=>{ onOpen(n); navigate('SocialProfile' as any, { userId: n.data?.userId }); }} style={styles.btn}><Text style={styles.btnText}>Ver Perfil</Text></Pressable>
               </>
             )}
             {n.kind==='system' && (
               <>
-                <Pressable onPress={()=>onOpen(n)} style={styles.btn}><Text style={styles.btnText}>Recordármelo</Text></Pressable>
+                <Pressable onPress={()=>{ try { require('../services/notifications').remind(n.id, 60*60*1000); } catch {} onOpen(n); Alert.alert('Recordatorio','Te lo recordaremos en 1 hora.'); }} style={styles.btn}><Text style={styles.btnText}>Recordármelo</Text></Pressable>
                 <Pressable onPress={()=>onArchive(n.id)} style={styles.btn}><Text style={styles.btnText}>Descartar</Text></Pressable>
               </>
             )}
             {n.kind==='message' && (
               <>
-                <Pressable onPress={()=>onOpen(n)} style={[styles.btn, styles.btnPrimary]}><Text style={styles.btnPrimaryText}>Responder</Text></Pressable>
-                <Pressable onPress={()=>markRead(n.id)} style={styles.btn}><Text style={styles.btnText}>Marcar como leído</Text></Pressable>
+                <Pressable onPress={()=>{ onOpen(n); navigate('SocialChat' as any, { userId: n.data?.from }); }} style={[styles.btn, styles.btnPrimary]}><Text style={styles.btnPrimaryText}>Responder</Text></Pressable>
+                <Pressable onPress={()=>{ markRead(n.id); Alert.alert('Hecho','Marcado como leído'); }} style={styles.btn}><Text style={styles.btnText}>Marcar como leído</Text></Pressable>
               </>
             )}
           </View>
@@ -108,6 +110,7 @@ function NotificationRow({ n, onOpen, onArchive }: { n: NotificationItem; onOpen
 
 function timeAgo(ts: number) {
   const diff = Date.now() - ts; const m = 60*1000; const h = 60*m; const d = 24*h;
+  if (diff < 0) return 'Próximamente';
   if (diff < h) return `Hace ${Math.max(1, Math.floor(diff/m))} minutos`;
   if (diff < d*2) return `Hace ${Math.floor(diff/h)} hora${Math.floor(diff/h)>1?'s':''}`;
   return 'Ayer';
