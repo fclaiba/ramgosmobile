@@ -25,6 +25,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   const [threadOpen, setThreadOpen] = useState<{ postId: string; replyingToId?: string } | null>(null);
   const [replyText, setReplyText] = useState('');
   const replyInputRef = useRef<TextInput | null>(null);
+  const replyInputRef = useRef<TextInput | null>(null);
   const translateY = useRef(new Animated.Value(0)).current;
   const pan = useRef(
     PanResponder.create({
@@ -50,6 +51,38 @@ export default function SocialProfileScreen({ route, navigation }: any) {
   if (!user) return null;
 
   const refresh = () => setVersion((v) => v + 1);
+
+  function renderCommentNode(node: any, depth: number) {
+    return (
+      <View key={node.id}>
+        <View style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
+          <Image source={{ uri: node.author.avatarUrl || 'https://i.pravatar.cc/100?img=31' }} style={{ width:32, height:32, borderRadius:999, backgroundColor:'#e5e7eb', marginLeft: depth ? 14 : 0 }} />
+          <View style={{ flex:1 }}>
+            <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
+              <Text style={{ fontWeight:'800', color:'#111827' }}>{node.author.name}</Text>
+              <Text style={{ color:'#6b7280' }}>{new Date(node.createdAt).toLocaleString()}</Text>
+            </View>
+            <Text style={{ color:'#111827', marginTop:2 }}>{node.text}</Text>
+            <View style={{ flexDirection:'row', gap:16, marginTop:6 }}>
+              <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ toggleLikeComment(node.id); refresh(); }}>
+                <MaterialIcons name={node.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={node.likedByMe ? '#ef4444' : '#6b7280'} />
+                <Text style={{ color:node.likedByMe ? '#ef4444' : '#6b7280' }}>{node.likes || 0}</Text>
+              </Pressable>
+              <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ setThreadOpen({ postId: threadOpen!.postId, replyingToId: node.id }); setTimeout(()=>replyInputRef.current?.focus(), 0); }}>
+                <MaterialIcons name={'reply'} size={16} color={'#6b7280'} />
+                <Text style={{ color:'#6b7280' }}>Responder</Text>
+              </Pressable>
+            </View>
+            {node.replies?.length > 0 && (
+              <View style={{ marginLeft:14, marginTop:8, borderLeftWidth:1, borderColor:'#e5e7eb', paddingLeft:10, gap:10 }}>
+                {node.replies.map((r: any) => renderCommentNode(r, depth + 1))}
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -278,50 +311,11 @@ export default function SocialProfileScreen({ route, navigation }: any) {
             data={listCommentsTree(threadOpen?.postId || '').slice()}
             keyExtractor={(i)=>i.id}
             contentContainerStyle={{ padding:16, paddingBottom:100, gap:12 }}
-            renderItem={({ item }) => (
-              <View>
-                <View style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
-                  <Image source={{ uri: item.author.avatarUrl || 'https://i.pravatar.cc/100?img=31' }} style={{ width:32, height:32, borderRadius:999, backgroundColor:'#e5e7eb' }} />
-                  <View style={{ flex:1 }}>
-                    <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                      <Text style={{ fontWeight:'800', color:'#111827' }}>{item.author.name}</Text>
-                      <Text style={{ color:'#6b7280' }}>{new Date(item.createdAt).toLocaleString()}</Text>
-                    </View>
-                    <Text style={{ color:'#111827', marginTop:2 }}>{item.text}</Text>
-                    <View style={{ flexDirection:'row', gap:16, marginTop:6 }}>
-                      <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ toggleLikeComment(item.id); setVersion(v=>v+1); }}>
-                        <MaterialIcons name={item.likedByMe ? 'favorite' : 'favorite-border'} size={16} color={item.likedByMe ? '#ef4444' : '#6b7280'} />
-                        <Text style={{ color:item.likedByMe ? '#ef4444' : '#6b7280' }}>{item.likes || 0}</Text>
-                      </Pressable>
-                      <Pressable style={{ flexDirection:'row', alignItems:'center', gap:6 }} onPress={()=>{ setThreadOpen({ postId: threadOpen!.postId, replyingToId: item.id }); }}>
-                        <MaterialIcons name={'reply'} size={16} color={'#6b7280'} />
-                        <Text style={{ color:'#6b7280' }}>Responder</Text>
-                      </Pressable>
-                    </View>
-                    {item.replies?.length > 0 && (
-                      <View style={{ marginLeft:14, marginTop:8, borderLeftWidth:1, borderColor:'#e5e7eb', paddingLeft:10, gap:10 }}>
-                        {item.replies.map((r) => (
-                          <View key={r.id} style={{ flexDirection:'row', alignItems:'flex-start', gap:10 }}>
-                            <Image source={{ uri: r.author.avatarUrl || 'https://i.pravatar.cc/100?img=32' }} style={{ width:26, height:26, borderRadius:999, backgroundColor:'#e5e7eb' }} />
-                            <View style={{ flex:1 }}>
-                              <View style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                                <Text style={{ fontWeight:'800', color:'#111827' }}>{r.author.name}</Text>
-                                <Text style={{ color:'#6b7280' }}>{new Date(r.createdAt).toLocaleString()}</Text>
-                              </View>
-                              <Text style={{ color:'#111827', marginTop:2 }}>{r.text}</Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </View>
-            )}
+            renderItem={({ item }) => renderCommentNode(item, 0)}
           />
           <View style={{ position:'absolute', left:0, right:0, bottom:0, borderTopWidth:1, borderColor:'#e5e7eb', backgroundColor:'#ffffff', padding:12, flexDirection:'row', alignItems:'center', gap:10 }}>
             <Image source={{ uri: 'https://i.pravatar.cc/100?img=25' }} style={{ width:28, height:28, borderRadius:999, backgroundColor:'#e5e7eb' }} />
-            <TextInput value={replyText} onChangeText={setReplyText} maxLength={280} placeholder={threadOpen?.replyingToId ? 'Respondiendo a un comentario…' : 'Escribe una respuesta...'} placeholderTextColor={'#6b7280'} style={{ flex:1, borderWidth:1, borderColor:'#d1d5db', borderRadius:999, paddingHorizontal:14, paddingVertical:8, color:'#111827' }} />
+            <TextInput ref={replyInputRef} value={replyText} onChangeText={setReplyText} maxLength={280} placeholder={threadOpen?.replyingToId ? 'Respondiendo a un comentario…' : 'Escribe una respuesta...'} placeholderTextColor={'#6b7280'} style={{ flex:1, borderWidth:1, borderColor:'#d1d5db', borderRadius:999, paddingHorizontal:14, paddingVertical:8, color:'#111827' }} />
             <Pressable
               onPress={() => { if (threadOpen && replyText.trim()) { addComment(threadOpen.postId, replyText.trim(), threadOpen.replyingToId); setReplyText(''); setThreadOpen({ postId: threadOpen.postId }); setVersion(v=>v+1); } }}
               style={{ paddingHorizontal:12, paddingVertical:8, borderRadius:999, backgroundColor:'#1173d4' }}
