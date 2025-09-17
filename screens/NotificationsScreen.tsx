@@ -3,6 +3,7 @@ import { SafeAreaView, View, Text, StyleSheet, FlatList, Pressable, ScrollView, 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { archive, listNotifications, markAllRead, markRead, NotificationItem } from '../services/notifications';
 import { navigate } from '../navigation/navigation';
+import { getUserById } from '../services/social';
 
 type Tab = 'all' | 'payment' | 'follower' | 'system' | 'message' | 'high';
 
@@ -68,6 +69,8 @@ export default function NotificationsScreen() {
 function NotificationRow({ n, onOpen, onArchive }: { n: NotificationItem; onOpen: (n: NotificationItem)=>void; onArchive: (id: string)=>void }) {
   const leftColor = n.kind==='payment' ? '#3b82f6' : n.kind==='follower' ? '#a855f7' : n.kind==='system' ? '#ef4444' : '#22c55e';
   const icon = n.kind==='payment' ? 'payment' : n.kind==='follower' ? 'person-add' : n.kind==='system' ? 'warning' : 'chat';
+  const followerUser = n.kind==='follower' && n.data?.userId ? getUserById(n.data.userId) : undefined;
+  const fromUser = n.kind==='message' && n.data?.from ? getUserById(n.data.from) : undefined;
   return (
     <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: leftColor }]}> 
       <View style={{ flexDirection:'row', alignItems:'flex-start', gap: 10 }}>
@@ -75,6 +78,22 @@ function NotificationRow({ n, onOpen, onArchive }: { n: NotificationItem; onOpen
         <View style={{ flex:1 }}>
           <Text style={styles.cardTitle}><Text style={{ fontWeight:'800' }}>{n.title}: </Text>{n.body}</Text>
           <Text style={styles.cardTime}>{timeAgo(n.createdAt)}</Text>
+          <View style={{ flexDirection:'row', flexWrap:'wrap', gap: 6, marginTop: 6 }}>
+            {n.priority==='high' && (
+              <View style={[styles.metaPill, { backgroundColor:'#fee2e2' }]}>
+                <Text style={[styles.metaPillText, { color:'#b91c1c', fontWeight:'900' }]}>Prioridad Alta</Text>
+              </View>
+            )}
+            {n.kind==='payment' && n.data?.invoiceId && (
+              <View style={styles.metaPill}><Text style={styles.metaPillText}>Factura {n.data.invoiceId}</Text></View>
+            )}
+            {n.kind==='follower' && (
+              <View style={styles.metaPill}><Text style={styles.metaPillText}>Usuario @{(followerUser?.handle)||n.data?.userId}</Text></View>
+            )}
+            {n.kind==='message' && (
+              <View style={styles.metaPill}><Text style={styles.metaPillText}>De @{(fromUser?.handle)||n.data?.from}</Text></View>
+            )}
+          </View>
           <View style={{ flexDirection:'row', gap: 8, marginTop: 8 }}>
             {n.kind==='payment' && (
               <>
@@ -133,6 +152,8 @@ const styles = StyleSheet.create({
   btnText: { color:'#374151', fontWeight:'700', fontSize: 12 },
   btnPrimary: { backgroundColor:'#e0effc' },
   btnPrimaryText: { color:'#1173d4', fontWeight:'800', fontSize: 12 },
+  metaPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor:'#f3f4f6' },
+  metaPillText: { color:'#374151', fontSize: 11, fontWeight:'700' },
 });
 
 
