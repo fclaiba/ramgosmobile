@@ -106,6 +106,17 @@ export function sendMessage(id: string, author: 'buyer'|'seller', text: string) 
   emit();
 }
 
+// Reset a estado inicial (pago retenido) para demos/flows guiados
+export function resetEscrowToHeld(id: string) {
+  const tx = getEscrowById(id); if (!tx) return;
+  tx.status = 'held';
+  tx.tracking = undefined;
+  tx.messages = [];
+  tx.countdownEndsAt = Date.now() + 72*3600*1000;
+  save();
+  emit();
+}
+
 export function getRemaining(id: string): { hours: number; minutes: number; seconds: number } {
   const tx = getEscrowById(id); if (!tx) return { hours: 0, minutes: 0, seconds: 0 };
   const ms = Math.max(0, tx.countdownEndsAt - Date.now());

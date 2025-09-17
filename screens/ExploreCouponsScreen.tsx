@@ -10,6 +10,7 @@ import {
   ImageBackground,
   Modal,
   useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -41,6 +42,19 @@ export default function ExploreCouponsScreen() {
   const [view, setView] = useState<'grid' | 'list' | 'map'>('grid');
   const [mod, setMod] = useState<null | 'config'>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [favOnly, setFavOnly] = useState(false);
+
+  const resetFilters = () => {
+    setQuery('');
+    setSector('all');
+    setPriceMin('0');
+    setPriceMax('50000');
+    setDistanceKm(20);
+    setInsideIds([]);
+    setRatingMin('all');
+    setSort('relevance');
+    setFavOnly(false);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim().toLowerCase()), 250);
@@ -85,10 +99,25 @@ export default function ExploreCouponsScreen() {
 
   const displayList = useMemo(() => {
     if (insideIds && insideIds.length > 0) return filtered.filter((c) => insideIds.includes(c.id));
-    return filtered;
-  }, [filtered, insideIds]);
+    const base = filtered;
+    if (favOnly) return base.filter((c) => !!favorites[c.id]);
+    return base;
+  }, [filtered, insideIds, favOnly, favorites]);
 
   const toggleFav = (id: string) => setFavorites((s) => ({ ...s, [id]: !s[id] }));
+
+  const activeChips = useMemo(() => {
+    const chips: string[] = [];
+    if (sector !== 'all') chips.push(`Sector: ${sector}`);
+    if (priceMin !== '0' || priceMax !== '50000') chips.push(`Precio: ${priceMin || '0'}-${priceMax || '∞'}`);
+    if (distanceKm !== 20) chips.push(`Radio: ${distanceKm} km`);
+    if (ratingMin !== 'all') chips.push(`Rating: ${ratingMin}`);
+    if (favOnly) chips.push('Solo favoritos');
+    if (sort !== 'relevance') chips.push(
+      sort === 'priceAsc' ? 'Orden: Precio ↑' : sort === 'priceDesc' ? 'Orden: Precio ↓' : sort === 'rating' ? 'Orden: Rating' : sort === 'endingSoon' ? 'Próximo a vencer' : 'Más cerca'
+    );
+    return chips;
+  }, [sector, priceMin, priceMax, distanceKm, ratingMin, favOnly, sort]);
 
   const renderCard = ({ item }: { item: CouponType }) => (
     <Pressable style={[styles.card, view !== 'grid' && styles.cardList]} onPress={() => nav.navigate('CouponDetail', { id: item.id })}>
@@ -127,6 +156,9 @@ export default function ExploreCouponsScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Explorar Bonos</Text>
+        <Pressable style={[styles.iconBtn, favOnly && { backgroundColor: '#e0f2fe' }]} accessibilityLabel={favOnly ? 'Ver todos' : 'Ver mis favoritos'} onPress={() => setFavOnly(v=>!v)}>
+          <MaterialIcons name={favOnly ? ('favorite' as any) : ('favorite-border' as any)} size={20} color={favOnly ? '#1173d4' : '#475569'} />
+        </Pressable>
         <Pressable style={styles.iconBtn} accessibilityLabel="Filtros" onPress={() => setMod('config')}>
           <MaterialIcons name={'tune'} size={22} color={'#475569'} />
         </Pressable>
@@ -142,12 +174,34 @@ export default function ExploreCouponsScreen() {
             value={query}
             onChangeText={setQuery}
           />
+          {query.length > 0 && (
+            <Pressable onPress={() => setQuery('')} style={{ paddingHorizontal: 8 }}>
+              <MaterialIcons name={'close'} size={18} color={'#94a3b8'} />
+            </Pressable>
+          )}
         </View>
       </View>
+
+      {activeChips.length > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: Math.min(24, width < 380 ? 12 : 16), paddingBottom: 4, flexWrap: 'wrap' }}>
+          {activeChips.map((t, i) => (
+            <View key={`${t}-${i}`} style={{ backgroundColor: '#e2e8f0', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+              <Text style={{ color: '#0f172a', fontSize: 12, fontWeight: '700' }}>{t}</Text>
+            </View>
+          ))}
+          <Pressable onPress={resetFilters} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 }} accessibilityLabel="Limpiar filtros">
+            <MaterialIcons name={'close'} size={16} color={'#0f172a'} />
+            <Text style={{ color: '#0f172a', fontSize: 12, fontWeight: '700' }}>Limpiar</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={[styles.sectionHeader, { paddingHorizontal: Math.min(24, width < 380 ? 12 : 16) }]}>
         <Text style={styles.sectionTitle}>Bonos Disponibles</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pressable style={styles.iconBtn} onPress={() => setView('grid')} accessibilityLabel="Vista cuadrícula">
+            <MaterialIcons name={'grid-view' as any} size={20} color={'#475569'} />
+          </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => setView('list')} accessibilityLabel="Vista lista">
             <MaterialIcons name={'view-list'} size={20} color={'#475569'} />
           </Pressable>
@@ -191,7 +245,7 @@ export default function ExploreCouponsScreen() {
       ) : (
         <FlatList
           data={displayList}
-          key={view}
+          key={`coupons-${view}`}
           keyExtractor={(i) => i.id}
           numColumns={view === 'grid' ? 2 : 1}
           columnWrapperStyle={view === 'grid' ? { gap: 12, paddingHorizontal: Math.min(24, width < 380 ? 12 : 16) } : undefined}
@@ -206,7 +260,7 @@ export default function ExploreCouponsScreen() {
         </Pressable>
         <View style={styles.modalSheet}>
           <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 8, textAlign: 'center' }}>Filtros</Text>
-          <View style={{ maxHeight: 420 }}>
+          <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ paddingBottom: 8 }}>
             <View>
               <Text style={styles.sectionTitle}>Categoría</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 6 }}>
@@ -259,6 +313,14 @@ export default function ExploreCouponsScreen() {
                 ))}
               </View>
             </View>
+          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+            <Pressable style={{ flex: 1, height: 44, borderRadius: 999, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' }} onPress={resetFilters} accessibilityLabel="Restablecer filtros">
+              <Text style={{ color: '#0f172a', fontWeight: '800' }}>Restablecer</Text>
+            </Pressable>
+            <Pressable style={{ flex: 1, height: 44, borderRadius: 999, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center' }} onPress={() => setMod(null)} accessibilityLabel="Aplicar filtros">
+              <Text style={{ color: '#ffffff', fontWeight: '800' }}>Aplicar</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -304,5 +366,6 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 16, color: '#0f172a', textTransform: 'capitalize' },
   locBtn: { height: 40, borderRadius: 8, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 10 },
 });
+
 
 

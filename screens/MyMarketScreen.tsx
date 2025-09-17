@@ -39,7 +39,12 @@ export default function MyMarketScreen({ navigation }: any) {
             <Pressable key={e.id} style={styles.card} onPress={()=>navigation.navigate('EscrowFlow' as any, { id: e.id } as any)}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>#{e.id} · {e.title}</Text>
-                <Text style={styles.cardMeta}>Estado: {e.status}</Text>
+                <View style={{ flexDirection:'row', alignItems:'center', gap: 8 }}>
+                  <Text style={styles.cardMeta}>Estado: {e.status}</Text>
+                  <View style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor:'#f1f5f9', borderRadius: 999 }}>
+                    <Text style={[styles.cardMeta, { fontWeight:'800', color:'#0f172a' }]}>{tab==='purchases'?'Compra':'Venta'}</Text>
+                  </View>
+                </View>
               </View>
               <MaterialIcons name={'chevron-right'} size={22} color={'#94a3b8'} />
             </Pressable>

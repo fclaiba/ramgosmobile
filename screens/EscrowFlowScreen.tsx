@@ -10,7 +10,7 @@ type Param = { EscrowFlow: { id: string } };
 export default function EscrowFlowScreen() {
   const nav = useNavigation<any>();
   const route = useRoute<RouteProp<Param, 'EscrowFlow'>>();
-  const { role } = useUser();
+  const { role, userId } = useUser();
   const { width, height } = useWindowDimensions();
   const [tick, setTick] = useState(0);
   const [input, setInput] = useState('');
@@ -42,6 +42,10 @@ export default function EscrowFlowScreen() {
     <SafeAreaView style={styles.safe}><View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Transacción no encontrada</Text></View></SafeAreaView>
   );
 
+  // Determinar el rol del usuario en esta negociación (comprador/vendedor)
+  const participantRole: 'buyer' | 'seller' | 'viewer' = tx.buyerId===userId ? 'buyer' : tx.sellerId===userId ? 'seller' : 'viewer';
+  const isSeller = participantRole === 'seller';
+  const modeLabel = participantRole === 'buyer' ? 'Compra' : participantRole === 'seller' ? 'Venta' : 'Escrow';
   const remaining = getRemaining(tx.id);
   const onSend = () => { if (!input.trim()) return; sendMessage(tx.id, 'buyer', input.trim()); setInput(''); };
   const onConfirm = () => {
@@ -111,6 +115,14 @@ export default function EscrowFlowScreen() {
           </View>
         </View>
         <Text style={{ color: '#64748b', marginTop: 4 }}>{tx.title}</Text>
+        <View style={{ flexDirection:'row', alignItems:'center', gap: 8, marginTop: 8 }}>
+          <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor:'#e5e7eb', borderRadius: 999 }}>
+            <Text style={{ color:'#111827', fontWeight:'800' }}>Modo: {modeLabel}</Text>
+          </View>
+          <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor:'#f1f5f9', borderRadius: 999 }}>
+            <Text style={{ color:'#0f172a', fontWeight:'800' }}>Tu rol: {participantRole==='buyer'?'Comprador':participantRole==='seller'?'Vendedor':'Observador'}</Text>
+          </View>
+        </View>
         </View>
 
         <View style={{ paddingHorizontal: horizontalPadding, marginTop: 12 }}>
@@ -157,7 +169,6 @@ export default function EscrowFlowScreen() {
         {/* Un solo botón por fase y rol */}
         {(() => {
           const status = localStatus ?? tx.status;
-          const isSeller = role === 'business';
           if (isSeller) {
             if (status === 'held') {
               return (

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { EventItem, getEventById, addEventOrder } from '../services/events';
@@ -16,6 +16,7 @@ type RootParam = { EventCheckout: { id: string; qty?: number } };
 export default function EventCheckoutScreen() {
   const route = useRoute<RouteProp<RootParam, 'EventCheckout'>>();
   const navigation = useNavigation<any>();
+  const { width } = useWindowDimensions();
   const { userId } = useUser();
   const { id, qty: initialQty = 1 } = route.params ?? ({} as any);
   const event: EventItem | undefined = useMemo(() => getEventById(id), [id]);
@@ -32,6 +33,10 @@ export default function EventCheckoutScreen() {
   const [refApplied, setRefApplied] = useState<ReferralInfo | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const qrRef = useRef<QRCode | null>(null);
+  const [cardBrand, setCardBrand] = useState<'visa'|'mastercard'|'amex'|'unknown'>('unknown');
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [expError, setExpError] = useState<string | null>(null);
+  const [cvcError, setCvcError] = useState<string | null>(null);
 
   const totalBefore = useMemo(() => (event ? (event.price > 0 ? event.price * qty : 0) : 0), [event, qty]);
   const discount = useMemo(() => (refApplied ? (totalBefore * refApplied.discountPct) / 100 : 0), [totalBefore, refApplied]);
@@ -52,7 +57,66 @@ export default function EventCheckoutScreen() {
   }
 
   const canContinueStep1 = qty >= 1;
-  const canContinueStep2 = (total === 0) || (accept && /\d{12,19}/.test(card.replace(/\s+/g, '')) && /^\d{2}\/?\d{2}$/.test(exp) && /^\d{3,4}$/.test(cvc));
+  // Helpers de validación/máscaras para tarjeta
+  const luhnCheck = (num: string): boolean => {
+    let sum = 0; let shouldDouble = false;
+    for (let i = num.length - 1; i >= 0; i--) {
+      let digit = parseInt(num.charAt(i), 10);
+      if (shouldDouble) { digit *= 2; if (digit > 9) digit -= 9; }
+      sum += digit; shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
+  };
+  const detectBrand = (digits: string): 'visa'|'mastercard'|'amex'|'unknown' => {
+    if (/^4\d{0,}$/.test(digits)) return 'visa';
+    if (/^(5[1-5]|2(2[2-9]|[3-6]\d|7[01]|720))\d{0,}$/.test(digits)) return 'mastercard';
+    if (/^3[47]\d{0,}$/.test(digits)) return 'amex';
+    return 'unknown';
+  };
+  const formatCard = (digits: string, brand: 'visa'|'mastercard'|'amex'|'unknown'): string => {
+    if (brand === 'amex') {
+      return digits.replace(/(\d{1,4})(\d{1,6})?(\d{1,5})?/, (_m, a, b, c) => [a, b, c].filter(Boolean).join(' '));
+    }
+    return digits.replace(/(\d{1,4})(\d{1,4})?(\d{1,4})?(\d{1,4})?/, (_m, a, b, c, d) => [a, b, c, d].filter(Boolean).join(' '));
+  };
+  const handleCardChange = (t: string) => {
+    const digits = t.replace(/\D+/g, '').slice(0, 19);
+    const brand = detectBrand(digits);
+    setCardBrand(brand);
+    const formatted = formatCard(digits, brand);
+    setCard(formatted);
+    if (digits.length >= (brand==='amex'?15:16)) setCardError(luhnCheck(digits) ? null : 'Número inválido');
+    else setCardError(null);
+  };
+  const handleExpChange = (t: string) => {
+    const digits = t.replace(/\D+/g, '').slice(0, 4);
+    let val = digits;
+    if (digits.length >= 3) val = `${digits.slice(0,2)}/${digits.slice(2)}`; else if (digits.length >= 1) val = digits;
+    setExp(val);
+  };
+  const validateExpiry = (val: string): boolean => {
+    const m = val.match(/^(\d{2})\/(\d{2})$/); if (!m) return false;
+    const mm = parseInt(m[1], 10); const yy = parseInt(m[2], 10);
+    if (mm < 1 || mm > 12) return false;
+    const year = 2000 + yy; const monthIndex = mm - 1;
+    const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999).getTime();
+    return endOfMonth >= Date.now();
+  };
+  const handleExpBlur = () => setExpError(validateExpiry(exp) ? null : 'Fecha inválida');
+  const handleCvcChange = (t: string) => {
+    const max = cardBrand === 'amex' ? 4 : 3;
+    const digits = t.replace(/\D+/g, '').slice(0, max);
+    setCvc(digits);
+    setCvcError(null);
+  };
+  const handleCvcBlur = () => {
+    const max = cardBrand === 'amex' ? 4 : 3;
+    setCvcError(cvc.length === max ? null : `CVV de ${max} dígitos`);
+  };
+  const isCardValid = (() => { const d = card.replace(/\s+/g,''); return (cardBrand==='amex'?d.length===15:d.length>=16) && luhnCheck(d); })();
+  const isExpValid = validateExpiry(exp);
+  const isCvcValid = (() => { const max = cardBrand==='amex'?4:3; return cvc.length===max; })();
+  const canContinueStep2 = (total === 0) || (accept && isCardValid && isExpValid && isCvcValid);
 
   const onNext = () => {
     if (step === 1 && canContinueStep1) setStep(2);
@@ -79,9 +143,12 @@ export default function EventCheckoutScreen() {
     else if (step === 3) navigation.popToTop();
   };
 
+  const horizontalPadding = width < 380 ? 12 : width < 768 ? 16 : 24;
+  const containerMaxWidth = Math.min(720, width - horizontalPadding * 2);
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { paddingHorizontal: horizontalPadding }]}>
         <Pressable style={styles.iconBtn} onPress={onBack} accessibilityLabel="Atrás">
           <MaterialIcons name={'arrow-back'} size={22} color={'#111418'} />
         </Pressable>
@@ -89,7 +156,7 @@ export default function EventCheckoutScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: horizontalPadding, paddingBottom: 120, paddingTop: 16, width: containerMaxWidth, alignSelf: 'center' }}>
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={[styles.stepCircle, { backgroundColor: PRIMARY }]}>
@@ -186,43 +253,55 @@ export default function EventCheckoutScreen() {
 
             <View style={{ marginTop: 12 }}>
               <Text style={styles.inputLabel}>Número de Tarjeta</Text>
-              <View style={styles.inputWrap}>
+              <View style={[styles.inputWrap, cardError && { borderColor: '#ef4444' }]}>
                 <TextInput
                   value={card}
-                  onChangeText={setCard}
+                  onChangeText={handleCardChange}
                   keyboardType="number-pad"
-                  placeholder="•••• •••• •••• ••••"
+                  placeholder={cardBrand==='amex'?"•••• •••••• •••••":"•••• •••• •••• ••••"}
                   placeholderTextColor="#94a3b8"
                   style={styles.input}
+                  maxLength={cardBrand==='amex'?17:19}
                 />
-                <MaterialIcons name={'credit-card'} size={18} color={'#94a3b8'} />
+                <View style={{ flexDirection:'row', alignItems:'center', gap: 6 }}>
+                  <Text style={{ color:'#64748b', fontWeight:'800', textTransform:'uppercase' }}>{cardBrand==='unknown'?'':cardBrand}</Text>
+                  <MaterialIcons name={'credit-card'} size={18} color={'#94a3b8'} />
+                </View>
               </View>
+              {cardError && <Text style={styles.fieldError}>{cardError}</Text>}
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+            <View style={{ flexDirection: width < 420 ? 'column' : 'row', gap: 12, marginTop: 12 }}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Vencimiento</Text>
                 <TextInput
                   value={exp}
-                  onChangeText={setExp}
+                  onChangeText={handleExpChange}
+                  onBlur={handleExpBlur}
                   keyboardType="number-pad"
                   placeholder="MM/YY"
                   placeholderTextColor="#94a3b8"
-                  style={styles.inputSolo}
+                  style={[styles.inputSolo, expError && { borderColor:'#ef4444' }]}
+                  maxLength={5}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>CVC</Text>
                 <TextInput
                   value={cvc}
-                  onChangeText={setCvc}
+                  onChangeText={handleCvcChange}
+                  onBlur={handleCvcBlur}
                   keyboardType="number-pad"
-                  placeholder="•••"
+                  placeholder={cardBrand==='amex'?"••••":"•••"}
                   placeholderTextColor="#94a3b8"
-                  style={styles.inputSolo}
+                  style={[styles.inputSolo, cvcError && { borderColor:'#ef4444' }]}
+                  maxLength={cardBrand==='amex'?4:3}
                 />
               </View>
             </View>
+            {(expError || cvcError) && (
+              <Text style={styles.fieldError}>{expError || cvcError}</Text>
+            )}
 
             <Pressable onPress={() => setAccept(v => !v)} style={styles.termsRow}>
               <View style={[styles.checkbox, accept && { backgroundColor: PRIMARY, borderColor: PRIMARY }]} />
@@ -300,13 +379,13 @@ export default function EventCheckoutScreen() {
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Pressable style={styles.ctaSecondary} onPress={onBack}>
+      <View style={[styles.footer, width < 360 && { flexDirection:'column', gap: 8 }]}>
+        <Pressable style={[styles.ctaSecondary, width < 360 && { width: '100%', justifyContent:'center' }]} onPress={onBack}>
           <MaterialIcons name={'arrow-back'} size={18} color={'#111418'} />
           <Text style={[styles.meta, { fontWeight: '800' }]}>{step === 3 ? 'Inicio' : 'Atrás'}</Text>
         </Pressable>
         {step !== 3 && (
-          <Pressable style={[styles.ctaPrimary, (step === 1 && !canContinueStep1) || (step === 2 && !canContinueStep2) ? styles.ctaDisabled : undefined]} disabled={(step === 1 && !canContinueStep1) || (step === 2 && !canContinueStep2)} onPress={onNext}>
+          <Pressable style={[styles.ctaPrimary, width < 360 && { width: '100%', justifyContent:'center' }, (step === 1 && !canContinueStep1) || (step === 2 && !canContinueStep2) ? styles.ctaDisabled : undefined]} disabled={(step === 1 && !canContinueStep1) || (step === 2 && !canContinueStep2)} onPress={onNext}>
             <Text style={styles.ctaPrimaryText}>{step === 1 ? 'Siguiente' : total === 0 ? 'Confirmar' : 'Pagar'}</Text>
             <MaterialIcons name={'arrow-forward'} size={18} color={'#ffffff'} />
           </Pressable>
@@ -349,6 +428,7 @@ const styles = StyleSheet.create({
   inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f8fafc' },
   input: { flex: 1, paddingVertical: 10, color: '#0f172a' },
   inputSolo: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#f8fafc', color: '#0f172a' },
+  fieldError: { color: '#b91c1c', fontSize: 12, marginTop: 6, fontWeight: '700' },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 12 },
   checkbox: { height: 20, width: 20, borderRadius: 4, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#ffffff' },
   termsText: { flex: 1, color: '#334155', fontSize: 13 },

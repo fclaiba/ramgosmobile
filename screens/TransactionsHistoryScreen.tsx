@@ -8,6 +8,7 @@ import { filterEventOrders, listEventOrders } from '../services/events';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as Print from 'expo-print';
+import { listUnifiedTransactions, exportTransactionsCsv, rangePresetToDates } from '../services/transactions';
 
 export default function TransactionsHistoryScreen({ navigation }: any) {
   const [query, setQuery] = useState('');
@@ -22,6 +23,29 @@ export default function TransactionsHistoryScreen({ navigation }: any) {
   const escrowsActive = useMemo(() => listEscrows({}), []);
   const coupons = useMemo(() => filterCouponOrders({ text: query, status: statusCoupon==='all'?undefined:[statusCoupon as any] }), [query, statusCoupon]);
   const eventsOrders = useMemo(() => filterEventOrders({ text: query, status: statusEvent==='all'?undefined:[statusEvent as any] }), [query, statusEvent]);
+
+  // Filtros unificados
+  const [datePreset, setDatePreset] = useState<'all'|'7d'|'30d'|'90d'>('all');
+  const [typeFilters, setTypeFilters] = useState<{ payments: boolean; escrows: boolean; coupons: boolean; events: boolean }>({ payments: true, escrows: true, coupons: true, events: true });
+  const [sortBy, setSortBy] = useState<'date'|'amount'>('date');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
+
+  const unified = useMemo(() => {
+    const { from, to } = rangePresetToDates(datePreset);
+    const types: ('payment'|'escrow'|'coupon'|'event')[] = [];
+    if (typeFilters.payments) types.push('payment');
+    if (typeFilters.escrows) types.push('escrow');
+    if (typeFilters.coupons) types.push('coupon');
+    if (typeFilters.events) types.push('event');
+    return listUnifiedTransactions({
+      text: query,
+      types,
+      dateFrom: from,
+      dateTo: to,
+      sortBy,
+      sortDir,
+    });
+  }, [query, datePreset, typeFilters, sortBy, sortDir]);
 
   const q = query.trim().toLowerCase();
   const match = (s: string) => (q ? s.toLowerCase().includes(q) : true);
@@ -140,6 +164,71 @@ export default function TransactionsHistoryScreen({ navigation }: any) {
             <Pressable key={f} style={[styles.filterChip, filter===f && styles.filterChipActive]} onPress={()=>setFilter(f)}>
               <Text style={[styles.filterChipText, filter===f && styles.filterChipTextActive]}>{f==='all'?'Todo':f==='payments'?'Pagos':f==='escrows'?'Escrow':f==='coupons'?'Cupones':'Eventos'}</Text>
             </Pressable>
+          ))}
+        </View>
+
+        {/* Filtros avanzados unificados */}
+        <View style={[styles.filterRow, { marginTop: 8 }]}>
+          {(['all','7d','30d','90d'] as const).map(p => (
+            <Pressable key={p} style={[styles.filterChip, datePreset===p && styles.filterChipActive]} onPress={()=>setDatePreset(p)}>
+              <Text style={[styles.filterChipText, datePreset===p && styles.filterChipTextActive]}>{p==='all'?'Todo':p}</Text>
+            </Pressable>
+          ))}
+          <View style={{ width: 8 }} />
+          {(['payments','escrows','coupons','events'] as const).map(t => (
+            <Pressable
+              key={t}
+              style={[styles.filterChip, (t==='payments'?typeFilters.payments:t==='escrows'?typeFilters.escrows:t==='coupons'?typeFilters.coupons:typeFilters.events) && styles.filterChipActive]}
+              onPress={()=>setTypeFilters(prev=>({ ...prev, [t]: !(t==='payments'?prev.payments:t==='escrows'?prev.escrows:t==='coupons'?prev.coupons:prev.events) }))}
+            >
+              <Text style={[styles.filterChipText, (t==='payments'?typeFilters.payments:t==='escrows'?typeFilters.escrows:t==='coupons'?typeFilters.coupons:typeFilters.events) && styles.filterChipTextActive]}>
+                {t==='payments'?'Pagos':t==='escrows'?'Escrow':t==='coupons'?'Cupones':'Eventos'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={[styles.filterRow, { marginTop: 8 }]}>
+          {(['date','amount'] as const).map(s => (
+            <Pressable key={s} style={[styles.filterChip, sortBy===s && styles.filterChipActive]} onPress={()=>setSortBy(s)}>
+              <Text style={[styles.filterChipText, sortBy===s && styles.filterChipTextActive]}>Orden: {s==='date'?'Fecha':'Importe'}</Text>
+            </Pressable>
+          ))}
+          <Pressable style={[styles.filterChip, styles.filterChipActive]} onPress={()=>setSortDir(d=>d==='asc'?'desc':'asc')}>
+            <Text style={[styles.filterChipText, styles.filterChipTextActive]}>{sortDir==='asc'?'Ascendente':'Descendente'}</Text>
+          </Pressable>
+          <Pressable style={[styles.filterChip, { marginLeft: 'auto' }]} onPress={async()=>{
+            try {
+              const csv = exportTransactionsCsv(unified);
+              const uri = FileSystem.cacheDirectory + 'transacciones.csv';
+              await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+              await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Exportar CSV' });
+            } catch (e) { Alert.alert('Error', 'No se pudo exportar CSV'); }
+          }}>
+            <MaterialIcons name={'download'} size={18} color={'#111827'} />
+            <Text style={[styles.filterChipText, { marginLeft: 4 }]}>Exportar CSV</Text>
+          </Pressable>
+        </View>
+
+        {/* Lista unificada */}
+        <View style={{ gap: 12, marginTop: 12 }}>
+          <Text style={styles.sectionTitle}>Transacciones</Text>
+          {unified.map(item => (
+            <View key={`${item.type}-${item.id}`} style={styles.card}>
+              <View style={styles.rowBetween}>
+                <View style={{ flexDirection:'row', alignItems:'center', gap: 8, flex: 1 }}>
+                  <MaterialIcons name={item.type==='payment'?'paid':item.type==='escrow'?'inbox':item.type==='coupon'?'redeem':'confirmation-number'} size={18} color={'#0f172a'} />
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                </View>
+                {item.amount != null && (
+                  <Text style={[styles.amount, { color: (item.amount ?? 0) >= 0 ? '#16a34a' : '#dc2626' }]}>{item.amount! >= 0?'+':''}${(item.amount ?? 0).toFixed(2)}</Text>
+                )}
+              </View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.cardMeta}>{new Date(item.date).toLocaleString()}</Text>
+                <Text style={styles.statusBadge}>{item.status}</Text>
+              </View>
+            </View>
           ))}
         </View>
 

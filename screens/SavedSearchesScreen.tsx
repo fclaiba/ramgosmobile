@@ -14,7 +14,7 @@ type SavedSearch = {
   ts: number;
 };
 
-export default function SavedSearchesScreen() {
+export default function SavedSearchesScreen({ navigation }: any) {
   const [items, setItems] = useState<SavedSearch[]>([]);
 
   useEffect(() => {
@@ -48,7 +48,11 @@ export default function SavedSearchesScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Búsquedas guardadas</Text>
+        <Pressable onPress={()=>navigation.goBack()} accessibilityLabel={'Volver'} style={{ height: 40, width: 40, alignItems:'center', justifyContent:'center', borderRadius:20 }}>
+          <MaterialIcons name={'arrow-back'} size={22} color={'#0f172a'} />
+        </Pressable>
+        <Text style={[styles.headerTitle, { flex: 1, textAlign: 'center' }]}>Búsquedas guardadas</Text>
+        <View style={{ width: 40, height: 40 }} />
         {items.length > 0 && (
           <Pressable style={styles.clearBtn} onPress={clearAll}>
             <MaterialIcons name={'delete'} size={20} color={'#ef4444'} />
@@ -60,6 +64,11 @@ export default function SavedSearchesScreen() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <MaterialIcons name={'bookmark-border'} size={32} color={'#94a3b8'} />
           <Text style={{ marginTop: 8, color: '#64748b' }}>No hay búsquedas guardadas</Text>
+          <View style={{ height: 12 }} />
+          <Pressable onPress={()=>navigation.goBack()} style={{ flexDirection:'row', alignItems:'center', gap:8, borderWidth:1, borderColor:'#e5e7eb', borderRadius:999, paddingHorizontal:12, paddingVertical:8 }}>
+            <MaterialIcons name={'arrow-back'} size={18} color={'#0f172a'} />
+            <Text style={{ color:'#0f172a', fontWeight:'800' }}>Volver</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList

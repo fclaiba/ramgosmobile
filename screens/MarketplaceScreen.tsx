@@ -175,7 +175,7 @@ export default function MarketplaceScreen() {
   };
 
   const renderCard = ({ item }: { item: Product }) => (
-    <Pressable style={styles.card} onPress={() => nav.navigate('ProductDetail', { id: item.id })}>
+    <Pressable style={[styles.card, view !== 'grid' && styles.cardList]} onPress={() => nav.navigate('ProductDetail', { id: item.id })}>
       <View style={styles.imageWrap}>
         <ImageBackground source={{ uri: item.images[0] }} style={styles.image} imageStyle={{ borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
           <View style={styles.badgeRow}>
@@ -226,6 +226,13 @@ export default function MarketplaceScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={[styles.headerRow, { paddingHorizontal: horizontalPadding }]}>
         <Text style={styles.headerTitle}>Marketplace</Text>
+        <Pressable
+          style={[styles.iconBtn, favOnly && { backgroundColor: '#e0f2fe' }]}
+          accessibilityLabel={favOnly ? 'Ver todos' : 'Ver mis favoritos'}
+          onPress={() => setFavOnly((v) => !v)}
+        >
+          <MaterialIcons name={favOnly ? ('favorite' as any) : ('favorite-border' as any)} size={22} color={favOnly ? '#1173d4' : '#475569'} />
+        </Pressable>
         <Pressable style={styles.iconBtn} accessibilityLabel="Ir a registro de ventas/compras" onPress={() => nav.navigate('EscrowRegistry' as any)}>
           <MaterialIcons name={'receipt'} size={22} color={'#475569'} />
         </Pressable>
@@ -320,9 +327,10 @@ export default function MarketplaceScreen() {
       ) : (
         <FlatList
           data={displayList}
+          key={`market-${view}-${numColumns}`}
           keyExtractor={(i) => i.id}
-          numColumns={numColumns}
-          columnWrapperStyle={{ gap: 12, paddingHorizontal: 0 }}
+          numColumns={view === 'grid' ? numColumns : 1}
+          columnWrapperStyle={view === 'grid' ? { gap: 12, paddingHorizontal: 0 } : undefined}
           contentContainerStyle={{ paddingBottom: 96, gap: 12, width: containerMaxWidth, alignSelf: 'center', paddingHorizontal: horizontalPadding }}
           renderItem={renderCard}
         />
@@ -334,7 +342,7 @@ export default function MarketplaceScreen() {
           <MaterialIcons name={'notifications'} size={20} color={'#0f172a'} />
           <Text style={styles.footerBtnSecondaryText}>Guardar búsqueda</Text>
         </Pressable>
-        <Pressable style={styles.footerBtnSecondary} onPress={() => (global as any).NAVIGATE?.('SavedSearches')} accessibilityLabel="Ver guardadas">
+        <Pressable style={styles.footerBtnSecondary} onPress={() => nav.navigate('SavedSearches' as any)} accessibilityLabel="Ver guardadas">
           <MaterialIcons name={'bookmark'} size={20} color={'#0f172a'} />
           <Text style={styles.footerBtnSecondaryText}>Guardadas</Text>
         </Pressable>
@@ -462,6 +470,7 @@ const styles = StyleSheet.create({
   metaText: { color: '#475569', fontWeight: '700', fontSize: 12 },
   metaDot: { marginHorizontal: 6, color: '#94a3b8', fontWeight: '900' },
   favBtn: { marginLeft: 'auto', height: 28, width: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: '#f8fafc' },
+  cardList: { width: '100%' },
   footerBar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#ffffff', padding: 12, paddingBottom: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row', alignItems: 'center', gap: 12 },
   footerBtnSecondary: { flex: 1, height: 44, borderRadius: 999, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   footerBtnSecondaryText: { color: '#0f172a', fontWeight: '800' },

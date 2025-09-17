@@ -15,6 +15,23 @@ export type Product = {
   coordinate: { latitude: number; longitude: number };
 };
 
+// Fallback stock images to ensure products always show a real image
+const STOCK_IMAGES: string[] = [
+  'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1526178612228-4f3e1a1d72c3?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1515165562835-c3b8c5d7d5a8?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop',
+];
+
+function fallbackImageFor(id: string): string {
+  // Pick a deterministic image based on id hash
+  let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const idx = h % STOCK_IMAGES.length;
+  return STOCK_IMAGES[idx];
+}
+
 const PRODUCTS: Product[] = [
   {
     id: 'p1',
@@ -88,6 +105,13 @@ const PRODUCTS: Product[] = [
   },
 ];
 
+// Ensure every product has at least one real image
+for (const p of PRODUCTS) {
+  if (!Array.isArray(p.images) || p.images.length === 0 || !p.images[0]) {
+    p.images = [fallbackImageFor(p.id)];
+  }
+}
+
 export function getProducts(): Product[] {
   return PRODUCTS;
 }
@@ -108,6 +132,10 @@ export function createProduct(input: NewProductInput): Product {
     ratingCount: 0,
     createdAt: Date.now(),
   };
+  // Guarantee non-empty images with a realistic fallback
+  if (!Array.isArray(prod.images) || prod.images.length === 0 || !prod.images[0]) {
+    prod.images = [fallbackImageFor(prod.id)];
+  }
   PRODUCTS.unshift(prod);
   return prod;
 }
