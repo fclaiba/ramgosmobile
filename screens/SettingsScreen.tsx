@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Image, Pressable, ScrollView, Switch } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { navigate } from '../navigation/navigation';
 
 export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(false);
@@ -41,6 +42,9 @@ export default function SettingsScreen() {
             </View>
           </View>
           <Pressable style={styles.primaryBtn}><Text style={styles.primaryBtnText}>Cambiar foto de perfil</Text></Pressable>
+          <Pressable style={[styles.primaryBtn, { backgroundColor:'#111827' }]} onPress={()=>navigate('PetProfile')}>
+            <Text style={styles.primaryBtnText}>Personalizar mascota</Text>
+          </Pressable>
         </View>
 
         {/* Verificación de Identidad */}

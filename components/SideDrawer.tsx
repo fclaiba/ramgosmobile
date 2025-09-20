@@ -62,6 +62,7 @@ export default function SideDrawer({ open, onClose }: Props) {
             { icon: 'event', label: 'Eventos', action: () => navigate('MyEvents') },
             { icon: 'storefront', label: 'Marketplace', action: () => navigate('MyMarket') },
             { icon: 'receipt', label: 'Transacciones', action: () => navigate('TransactionsHistory') },
+            { icon: 'pets', label: 'Mi perro', action: () => navigate('PetGame') },
             { icon: 'person', label: 'Perfil', action: () => navigate('SocialProfile', { userId }) },
             { icon: 'settings', label: 'Configuración', action: () => {} },
             { icon: 'logout', label: 'Cerrar sesión', action: () => {} },
