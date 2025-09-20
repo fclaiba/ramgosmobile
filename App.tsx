@@ -9,6 +9,7 @@ import LoginScreen from './screens/LoginScreen';
 import MainTabs from './navigation/MainTabs';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import { UserProvider } from './context/UserContext';
+import { PetProvider } from './context/PetContext';
 import ProfileScreen from './screens/ProfileScreen';
 import InfluencerDashboard from './screens/InfluencerDashboard';
 import MerchantHomeScreen from './screens/MerchantHomeScreen';
@@ -37,6 +38,8 @@ import MyEventsScreen from './screens/MyEventsScreen';
 import MyMarketScreen from './screens/MyMarketScreen';
 import EventDetailScreen from './screens/EventDetailScreen';
 import EventCheckoutScreen from './screens/EventCheckoutScreen';
+import PetGameScreen from './screens/PetGameScreen';
+import PetProfileScreen from './screens/PetProfileScreen';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -65,6 +68,8 @@ export type RootStackParamList = {
   Stories: { userId?: string };
   EventDetail: { id: string };
   EventCheckout: { id: string; qty?: number };
+  PetGame: undefined;
+  PetProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -74,6 +79,7 @@ export default function App() {
   useEffect(() => { initEscrowStore(); }, []);
   return (
     <UserProvider>
+      <PetProvider>
       <NavigationContainer ref={navRef}>
         <Stack.Navigator>
           <Stack.Screen
@@ -123,6 +129,8 @@ export default function App() {
           <Stack.Screen name="Stories" component={StoriesScreen} options={{ headerShown: false }} />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="EventCheckout" component={EventCheckoutScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="PetGame" component={PetGameScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="PetProfile" component={PetProfileScreen} options={{ headerShown: false }} />
           <Stack.Screen
             name="VerifyEmail"
             component={VerifyEmailScreen}
@@ -131,6 +139,7 @@ export default function App() {
           <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
       </NavigationContainer>
+      </PetProvider>
     </UserProvider>
   );
 }
@@ -143,7 +152,7 @@ globalThis.addEventListener?.('NAVIGATE', (e: any) => {
     const screen = detail.screen as keyof RootStackParamList;
     const params = detail.params as any;
     // Si piden una pestaña del TabNavigator, enrutar vía 'Main'
-    const tabNames = new Set(['Marketplace', 'Explorar', 'Social', 'Home', 'Perfil']);
+    const tabNames = new Set(['Marketplace', 'Explorar', 'Social', 'Home', 'Perfil', 'Mascota']);
     if (tabNames.has(screen as any)) {
       navigationRef?.navigate?.('Main' as any, { screen } as any);
       return;

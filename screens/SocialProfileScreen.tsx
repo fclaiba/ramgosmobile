@@ -210,7 +210,7 @@ export default function SocialProfileScreen({ route, navigation }: any) {
                 <MaterialIcons name={'arrow-back'} size={22} color={'#111827'} />
               </Pressable>
               <View style={styles.topRight}>
-                <Pressable style={styles.iconBtn} hitSlop={8}><MaterialIcons name={'palette'} size={20} color={'#111827'} /></Pressable>
+                <Pressable style={styles.iconBtn} hitSlop={8} onPress={()=>navigation.navigate('PetGame')}><MaterialIcons name={'pets'} size={20} color={'#111827'} /></Pressable>
                 <Pressable style={styles.iconBtn} hitSlop={8} onPress={()=>setSettingsOpen(true)}><MaterialIcons name={'settings'} size={20} color={'#111827'} /></Pressable>
                 <Pressable style={styles.iconBtn} hitSlop={8}><MaterialIcons name={'more-vert'} size={20} color={'#111827'} /></Pressable>
               </View>
