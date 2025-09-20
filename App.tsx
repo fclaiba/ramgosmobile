@@ -37,6 +37,15 @@ import MyEventsScreen from './screens/MyEventsScreen';
 import MyMarketScreen from './screens/MyMarketScreen';
 import EventDetailScreen from './screens/EventDetailScreen';
 import EventCheckoutScreen from './screens/EventCheckoutScreen';
+import PetScreen from './screens/PetScreen';
+import PetFeedScreen from './screens/PetFeedScreen';
+import ArcadeScreen from './screens/ArcadeScreen';
+import GameFruits from './screens/GameFruits';
+import GameRunner from './screens/GameRunner';
+import GameMemory from './screens/GameMemory';
+import GameDuckHunt from './screens/GameDuckHunt';
+import GameRoulette from './screens/GameRoulette';
+import GameSlots from './screens/GameSlots';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -65,6 +74,15 @@ export type RootStackParamList = {
   Stories: { userId?: string };
   EventDetail: { id: string };
   EventCheckout: { id: string; qty?: number };
+  Pet: undefined;
+  PetFeed: undefined;
+  Arcade: undefined;
+  Game_fruits: undefined;
+  Game_runner: undefined;
+  Game_memory: undefined;
+  Game_duckhunt: undefined;
+  Game_roulette: undefined;
+  Game_slots: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -123,6 +141,15 @@ export default function App() {
           <Stack.Screen name="Stories" component={StoriesScreen} options={{ headerShown: false }} />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="EventCheckout" component={EventCheckoutScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Pet" component={PetScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="PetFeed" component={PetFeedScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Arcade" component={ArcadeScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Game_fruits" component={GameFruits} options={{ headerShown: false }} />
+          <Stack.Screen name="Game_runner" component={GameRunner} options={{ headerShown: false }} />
+          <Stack.Screen name="Game_memory" component={GameMemory} options={{ headerShown: false }} />
+          <Stack.Screen name="Game_duckhunt" component={GameDuckHunt} options={{ headerShown: false }} />
+          <Stack.Screen name="Game_roulette" component={GameRoulette} options={{ headerShown: false }} />
+          <Stack.Screen name="Game_slots" component={GameSlots} options={{ headerShown: false }} />
           <Stack.Screen
             name="VerifyEmail"
             component={VerifyEmailScreen}
