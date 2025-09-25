@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadCoins, saveCoins } from './pet';
+import { addCoins as addTamaCoins, ensureTamagotchiReady } from './tamagotchi';
 
 const STORAGE_CHALLENGE = 'arcade_daily_challenge_v1';
 
@@ -9,10 +10,13 @@ export type ChallengeState = {
 
 export async function getCoins(): Promise<number> { return loadCoins(); }
 export async function setCoins(amount: number): Promise<void> { return saveCoins(amount); }
+// Award coins once: write to pet storage for backwards compatibility and to tamagotchi store
 export async function awardCoins(delta: number): Promise<number> {
   const current = await loadCoins();
   const next = Math.max(0, current + Math.floor(delta));
   await saveCoins(next);
+  await ensureTamagotchiReady();
+  addTamaCoins(Math.max(0, Math.floor(delta)));
   return next;
 }
 

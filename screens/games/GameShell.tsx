@@ -2,6 +2,7 @@ import React from 'react';
 import { SafeAreaView, View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import HeaderBalance from '../../components/roulette/HeaderBalance';
 
 type Props = { title: string; children: React.ReactNode };
 
@@ -14,7 +15,7 @@ export default function GameShell({ title, children }: Props) {
           <MaterialIcons name={'arrow-back'} size={22} color={'#111827'} />
         </Pressable>
         <Text style={styles.title}>{title}</Text>
-        <View style={{ width: 40 }} />
+        <HeaderBalance />
       </View>
       <View style={{ flex: 1, padding: 16 }}>{children}</View>
     </SafeAreaView>

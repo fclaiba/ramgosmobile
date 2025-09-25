@@ -73,13 +73,18 @@ export default function GameFruits() {
         it.y += it.vy * dt;
       });
 
-      // collisions & cleanup
+      // collisions & cleanup (solo cuentan si tocan la barra verde)
       const kept: Item[] = [];
       itemsRef.current.forEach((it) => {
-        const collides =
-          it.y + itemSize >= H - 120 &&
-          it.x < basketXRef.current + basketWidth &&
-          it.x + itemSize > basketXRef.current;
+        // La barra verde está en la parte inferior del contenedor de juego
+        // Aquí asumimos un área de juego con margen superior y HUD; usamos un umbral preciso
+        const basketTop = H - 120; // altura previa
+        const basketBottom = H - 120 + 18; // altura de la barra: 18px (ver styles.basket)
+        const centerX = it.x + itemSize / 2;
+        const centerY = it.y + itemSize; // borde inferior del item
+        const withinX = centerX >= basketXRef.current && centerX <= basketXRef.current + basketWidth;
+        const touching = centerY >= basketTop && centerY <= basketBottom;
+        const collides = withinX && touching;
         if (collides) {
           if (it.type === 'fruit') {
             setScore((s) => s + 1);
