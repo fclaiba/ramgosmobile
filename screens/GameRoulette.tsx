@@ -170,6 +170,10 @@ export default function GameRoulette({ navigation }: any) {
     });
   }
 
+  function getBetAmount(kind: string, value: string | number): number {
+    return bets.get(betKey(kind, value)) || 0;
+  }
+
   function spinWheel() {
     const totalBet = Array.from(bets.values()).reduce((a,b)=>a+b,0);
     if (spinning || totalBet <= 0) return;
@@ -279,25 +283,71 @@ export default function GameRoulette({ navigation }: any) {
                     <View style={{ flexDirection: 'row', flexWrap: 'nowrap' }}>{bottomRow.map((n)=>renderNumberCell(n))}</View>
                   </View>
                   <View style={{ width: 48, marginLeft: 8 }}>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <View key={`2to1-${i}`} style={[styles.twoToOne, { height: cellH, borderWidth: border }, i !== 2 ? { marginBottom: gap } : null]}><Text style={styles.smallText}>2 to 1</Text></View>
-                    ))}
+                    {Array.from({ length: 3 }).map((_, i) => {
+                      const colKey = i === 0 ? 'top' : i === 1 ? 'middle' : 'bottom';
+                      const amt = getBetAmount('column', colKey);
+                      return (
+                        <TouchableOpacity
+                          key={`2to1-${i}`}
+                          activeOpacity={0.8}
+                          onPress={() => placeBet('column', colKey)}
+                          style={[styles.twoToOne, { height: cellH, borderWidth: border }, i !== 2 ? { marginBottom: gap } : null]}
+                        >
+                          <Text style={styles.smallText}>2 to 1</Text>
+                          {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                  {(['1','2','3'] as const).map((d, i) => (
-                    <TouchableOpacity key={`dozen-${d}`} activeOpacity={0.8} onPress={() => placeBet('dozen', d)} style={[styles.dozen, { flex: 1, borderWidth: border, height: dozenH }, i !== 2 ? { marginRight: 8 } : null]}>
-                      <Text style={styles.smallText}>{i === 0 ? '1st 12' : i === 1 ? '2nd 12' : '3rd 12'}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {(['1','2','3'] as const).map((d, i) => {
+                    const amt = getBetAmount('dozen', d);
+                    return (
+                      <TouchableOpacity key={`dozen-${d}`} activeOpacity={0.8} onPress={() => placeBet('dozen', d)} style={[styles.dozen, { flex: 1, borderWidth: border, height: dozenH }, i !== 2 ? { marginRight: 8 } : null]}>
+                        <Text style={styles.smallText}>{i === 0 ? '1st 12' : i === 1 ? '2nd 12' : '3rd 12'}</Text>
+                        {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
                 <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                  <TouchableOpacity onPress={() => placeBet('range', '1-18')} style={[styles.bottomBtn, { borderWidth: border, height: outsideH }]} activeOpacity={0.8}><Text style={styles.smallText}>1 to 18</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => placeBet('parity', 'par')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}><Text style={styles.smallText}>EVEN</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => placeBet('color', 'red')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}><View style={styles.diamondRed} /></TouchableOpacity>
-                  <TouchableOpacity onPress={() => placeBet('color', 'black')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}><View style={styles.diamondBlack} /></TouchableOpacity>
-                  <TouchableOpacity onPress={() => placeBet('parity', 'impar')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}><Text style={styles.smallText}>ODD</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => placeBet('range', '19-36')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}><Text style={styles.smallText}>19 to 36</Text></TouchableOpacity>
+                  {(() => { const amt = getBetAmount('range', '1-18'); return (
+                    <TouchableOpacity onPress={() => placeBet('range', '1-18')} style={[styles.bottomBtn, { borderWidth: border, height: outsideH }]} activeOpacity={0.8}>
+                      <Text style={styles.smallText}>1 to 18</Text>
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  ); })()}
+                  {(() => { const amt = getBetAmount('parity', 'par'); return (
+                    <TouchableOpacity onPress={() => placeBet('parity', 'par')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}>
+                      <Text style={styles.smallText}>EVEN</Text>
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  ); })()}
+                  {(() => { const amt = getBetAmount('color', 'red'); return (
+                    <TouchableOpacity onPress={() => placeBet('color', 'red')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}>
+                      <View style={styles.diamondRed} />
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  ); })()}
+                  {(() => { const amt = getBetAmount('color', 'black'); return (
+                    <TouchableOpacity onPress={() => placeBet('color', 'black')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}>
+                      <View style={styles.diamondBlack} />
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  ); })()}
+                  {(() => { const amt = getBetAmount('parity', 'impar'); return (
+                    <TouchableOpacity onPress={() => placeBet('parity', 'impar')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}>
+                      <Text style={styles.smallText}>ODD</Text>
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  ); })()}
+                  {(() => { const amt = getBetAmount('range', '19-36'); return (
+                    <TouchableOpacity onPress={() => placeBet('range', '19-36')} style={[styles.bottomBtn, { borderWidth: border, marginLeft: 8, height: outsideH }]} activeOpacity={0.8}>
+                      <Text style={styles.smallText}>19 to 36</Text>
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  ); })()}
                 </View>
               </View>
             </View>
@@ -323,6 +373,17 @@ export default function GameRoulette({ navigation }: any) {
                   {[bottomRow[i], middleRow[i], topRow[i]].map((n) => renderNumberCellMobile(n))}
                 </View>
               ))}
+              <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+                {(['top','middle','bottom'] as const).map((colKey, i) => {
+                  const amt = getBetAmount('column', colKey);
+                  return (
+                    <TouchableOpacity key={`m-2to1-${colKey}`} activeOpacity={0.8} onPress={() => placeBet('column', colKey)} style={[styles.bottomBtn, { flex: 1, borderWidth: border, height: mCellH }, i !== 2 ? { marginRight: 6 } : null]}>
+                      <Text style={styles.smallText}>2 to 1</Text>
+                      {amt ? (<View style={styles.badge}><Text style={styles.badgeText}>{amt}</Text></View>) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
               <View style={{ flexDirection: 'row', marginTop: 6 }}>
                 {(['1','2','3'] as const).map((d, i) => (
                   <TouchableOpacity key={`dozen-m-${d}`} activeOpacity={0.8} onPress={() => placeBet('dozen', d)} style={[styles.dozen, { flex: 1, borderWidth: border, height: mDozenH }, i !== 2 ? { marginRight: 6 } : null]}>

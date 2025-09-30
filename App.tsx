@@ -7,6 +7,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import LoginScreen from './screens/LoginScreen';
 import MainTabs from './navigation/MainTabs';
+import HomeScreen from './screens/HomeScreen';
 import VerifyEmailScreen from './screens/VerifyEmailScreen';
 import { UserProvider } from './context/UserContext';
 import ProfileScreen from './screens/ProfileScreen';
@@ -46,12 +47,14 @@ import GameMemory from './screens/GameMemory';
 import GameDuckHunt from './screens/GameDuckHunt';
 import GameRoulette from './screens/GameRoulette';
 import GameSlots from './screens/GameSlots';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 export type RootStackParamList = {
   Welcome: undefined;
   Register: undefined;
   Login: undefined;
   Main: undefined;
+  Home: undefined;
   VerifyEmail: { email: string } | undefined;
   Profile: undefined;
   Influencer: undefined;
@@ -87,12 +90,13 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function App() {
+function AppInner() {
   const navRef = navigationRef;
   useEffect(() => { initEscrowStore(); }, []);
+  const { navigationTheme } = useTheme();
   return (
     <UserProvider>
-      <NavigationContainer ref={navRef}>
+      <NavigationContainer ref={navRef} theme={navigationTheme}>
         <Stack.Navigator>
           <Stack.Screen
             name="Welcome"
@@ -114,6 +118,7 @@ export default function App() {
             component={MainTabs}
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
           {/* Dashboards por rol para navegación directa desde el drawer */}
           <Stack.Screen name="Influencer" component={InfluencerDashboard} options={{ headerShown: false }} />
           <Stack.Screen name="Negocio" component={MerchantHomeScreen} options={{ headerShown: false }} />
@@ -161,6 +166,13 @@ export default function App() {
     </UserProvider>
   );
 }
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}
 
 // Navegación global mínima: escucha CustomEvent y usa navigationRef
 // @ts-ignore
@@ -170,7 +182,7 @@ globalThis.addEventListener?.('NAVIGATE', (e: any) => {
     const screen = detail.screen as keyof RootStackParamList;
     const params = detail.params as any;
     // Si piden una pestaña del TabNavigator, enrutar vía 'Main'
-    const tabNames = new Set(['Marketplace', 'Explorar', 'Social', 'Home', 'Perfil']);
+    const tabNames = new Set(['Marketplace', 'Explorar', 'Social', 'Perfil']);
     if (tabNames.has(screen as any)) {
       navigationRef?.navigate?.('Main' as any, { screen } as any);
       return;

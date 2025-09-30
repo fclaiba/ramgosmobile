@@ -24,7 +24,7 @@ export function quantizeAngleToIndex(deg: number): number {
   return Math.floor(angle / per) % EUROPEAN_WHEEL.length;
 }
 
-export type BetKind = 'num' | 'color' | 'parity' | 'dozen' | 'range';
+export type BetKind = 'num' | 'color' | 'parity' | 'dozen' | 'range' | 'column';
 
 export function computePayout(bets: Map<string, number>, result: WheelNumber): number {
   const get = (k: string) => bets.get(k) || 0;
@@ -41,6 +41,9 @@ export function computePayout(bets: Map<string, number>, result: WheelNumber): n
     if (result >= 1 && result <= 12) payout += get(k('dozen', '1')) * 3;
     if (result >= 13 && result <= 24) payout += get(k('dozen', '2')) * 3;
     if (result >= 25 && result <= 36) payout += get(k('dozen', '3')) * 3;
+    // Columnas (2 to 1): top / middle / bottom
+    const column = (result % 3 === 0) ? 'top' : (result % 3 === 2 ? 'middle' : 'bottom');
+    payout += get(k('column', column)) * 3;
   }
   return payout;
 }

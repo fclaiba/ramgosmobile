@@ -14,7 +14,7 @@ function WheelView({ rotateDeg, size }: Props) {
   return (
     <View style={{ width: SZ, height: SZ, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ position: 'absolute', top: -Math.max(12, SZ * 0.035), zIndex: 20, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: Math.max(10, SZ * 0.04), borderRightWidth: Math.max(10, SZ * 0.04), borderBottomWidth: Math.max(18, SZ * 0.07), borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#00C853' }} />
+        <View style={{ width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: Math.max(10, SZ * 0.04), borderRightWidth: Math.max(10, SZ * 0.04), borderTopWidth: Math.max(18, SZ * 0.07), borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#00C853' }} />
       </View>
       {/** Anillos de borde para profundidad visual */}
       <View style={{ position: 'absolute', width: SZ, height: SZ, borderRadius: SZ/2, borderWidth: Math.max(2, Math.floor(SZ * 0.01)), borderColor: '#c8cbd0' }} />

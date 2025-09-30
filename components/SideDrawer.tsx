@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
+import { useTheme } from '../context/ThemeContext';
 import { navigate } from '../navigation/navigation';
 
 type Props = {
@@ -13,6 +14,7 @@ const WIDTH = Math.min(320, Dimensions.get('window').width * 0.8);
 
 export default function SideDrawer({ open, onClose }: Props) {
   const { role, setRole, userId, setUserId } = useUser();
+  const { isDark, toggle, colors } = useTheme();
   const translateX = useRef(new Animated.Value(-WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -38,49 +40,86 @@ export default function SideDrawer({ open, onClose }: Props) {
       >
         <Pressable style={{ flex: 1 }} onPress={onClose} />
       </Animated.View>
-      <Animated.View style={[styles.drawer, { transform: [{ translateX }] }]}>
+      <Animated.View style={[styles.drawer, { backgroundColor: colors.card, transform: [{ translateX }] }]}>
         <View style={styles.header}>
-          <Text style={styles.userName}>Sofia</Text>
-          <Text style={styles.userEmail}>sofia@example.com</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>Sofia</Text>
+          <Text style={[styles.userEmail, { color: colors.muted }]}>sofia@example.com</Text>
         </View>
         {(() => {
-          const items: Array<{ icon: string; label: string; action: () => void }> = [
+          const mainItems: Array<{ icon: string; label: string; action: () => void }> = [
             { icon: 'home', label: 'Home', action: () => navigate('Main') },
           ];
           // Insert Dashboard below Home for non-consumer roles
           if (role !== 'consumer') {
             if (role === 'business') {
-              items.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Negocio') });
+              mainItems.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Negocio') });
             } else if (role === 'influencer') {
-              items.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Influencer') });
+              mainItems.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Influencer') });
             } else if (role === 'admin') {
-              items.push({ icon: 'admin-panel-settings', label: 'Dashboard', action: () => navigate('Admin') });
+              mainItems.push({ icon: 'admin-panel-settings', label: 'Dashboard', action: () => navigate('Admin') });
             }
           }
-          items.push(
+          mainItems.push(
             { icon: 'sell', label: 'Bonos', action: () => navigate('MyCoupons') },
             { icon: 'event', label: 'Eventos', action: () => navigate('MyEvents') },
             { icon: 'storefront', label: 'Marketplace', action: () => navigate('MyMarket') },
             { icon: 'pets', label: 'Mascota', action: () => navigate('Pet') },
             { icon: 'receipt', label: 'Transacciones', action: () => navigate('TransactionsHistory') },
             { icon: 'person', label: 'Perfil', action: () => navigate('SocialProfile', { userId }) },
+          );
+          const footerItems: Array<{ icon: string; label: string; action: () => void }> = [
+            { icon: (isDark ? 'light-mode' : 'dark-mode') as any, label: isDark ? 'Tema claro' : 'Tema oscuro', action: () => toggle() },
             { icon: 'settings', label: 'Configuración', action: () => {} },
             { icon: 'logout', label: 'Cerrar sesión', action: () => {} },
-          );
-          return items;
+          ];
+          return { mainItems, footerItems };
         })().map((item) => (
-          <Pressable
-            key={item.label}
-            style={styles.menuItem}
-            onPress={() => {
-              item.action();
-              onClose();
-            }}
-          >
-            <MaterialIcons name={item.icon as any} size={20} color="#374151" />
-            <Text style={styles.menuText}>{item.label}</Text>
-          </Pressable>
+          // This .map is over the returned object, so adjust rendering below
         ))}
+
+        {(() => {
+          const { mainItems, footerItems } = ((): any => {
+            const mainItems: Array<{ icon: string; label: string; action: () => void }> = [
+              { icon: 'home', label: 'Home', action: () => navigate('Main') },
+            ];
+            if (role !== 'consumer') {
+              if (role === 'business') { mainItems.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Negocio') }); }
+              else if (role === 'influencer') { mainItems.push({ icon: 'dashboard', label: 'Dashboard', action: () => navigate('Influencer') }); }
+              else if (role === 'admin') { mainItems.push({ icon: 'admin-panel-settings', label: 'Dashboard', action: () => navigate('Admin') }); }
+            }
+            mainItems.push(
+              { icon: 'sell', label: 'Bonos', action: () => navigate('MyCoupons') },
+              { icon: 'event', label: 'Eventos', action: () => navigate('MyEvents') },
+              { icon: 'storefront', label: 'Marketplace', action: () => navigate('MyMarket') },
+              { icon: 'pets', label: 'Mascota', action: () => navigate('Pet') },
+              { icon: 'receipt', label: 'Transacciones', action: () => navigate('TransactionsHistory') },
+              { icon: 'person', label: 'Perfil', action: () => navigate('SocialProfile', { userId }) },
+            );
+            const footerItems = [
+              { icon: (isDark ? 'light-mode' : 'dark-mode') as any, label: isDark ? 'Tema claro' : 'Tema oscuro', action: () => toggle() },
+              { icon: 'settings', label: 'Configuración', action: () => {} },
+              { icon: 'logout', label: 'Cerrar sesión', action: () => {} },
+            ];
+            return { mainItems, footerItems };
+          })();
+          return (
+            <>
+              {mainItems.map((item) => (
+                <Pressable key={item.label} style={styles.menuItem} onPress={() => { item.action(); onClose(); }}>
+                  <MaterialIcons name={item.icon as any} size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text }]}>{item.label}</Text>
+                </Pressable>
+              ))}
+              <View style={{ flex: 1 }} />
+              {footerItems.map((item) => (
+                <Pressable key={item.label} style={styles.menuItem} onPress={() => { item.action(); onClose(); }}>
+                  <MaterialIcons name={item.icon as any} size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text }]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </>
+          );
+        })()}
 
         <View style={styles.devBlock}>
           <Text style={styles.devTitle}>Cambiar rol (dev): {role}</Text>
@@ -134,7 +173,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: WIDTH,
-    backgroundColor: '#ffffff',
     paddingTop: 48,
     paddingHorizontal: 16,
   },
